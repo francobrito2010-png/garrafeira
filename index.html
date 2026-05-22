@@ -247,7 +247,7 @@ async function saveToFirebase() {
 
 function scheduleSave() {
   if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(saveToFirebase, 120000);
+  saveTimer = setTimeout(saveToFirebase, 800);
 }
 
 function loadFromFirebase(data) {
