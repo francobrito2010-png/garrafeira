@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Garrafeira — Stock Live</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0e0c;
+    --surface: #1a1814;
+    --border: #2e2b25;
+    --gold: #c9a84c;
+    --gold-dim: #7a6330;
+    --text: #e8e0d0;
+    --text-dim: #7a7060;
+    --red: #c0392b;
+    --green: #27ae60;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; min-height: 100vh; padding: 24px 16px 80px; }
+
+  #loading {
+    position: fixed; inset: 0; background: var(--bg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 999; gap: 16px;
+  }
+  #loading h2 { font-family: 'Playfair Display', serif; color: var(--gold); font-size: 1.5rem; }
+  #loading p { color: var(--text-dim); font-size: 0.8rem; }
+  .spinner {
+    width: 36px; height: 36px; border: 3px solid var(--border);
+    border-top-color: var(--gold); border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  #sync-indicator {
+    position: fixed; top: 12px; right: 12px;
+    font-size: 0.65rem; color: var(--text-dim);
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 4px 10px; border-radius: 20px; z-index: 50;
+    transition: all 0.3s;
+  }
+  #sync-indicator.saving { color: var(--gold); border-color: var(--gold-dim); }
+  #sync-indicator.saved { color: var(--green); border-color: var(--green); }
+
+  header { text-align: center; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 1px solid var(--gold-dim); }
+  header h1 { font-family: 'Playfair Display', serif; font-size: 2rem; color: var(--gold); letter-spacing: 0.05em; }
+  header p { color: var(--text-dim); font-size: 0.75rem; margin-top: 4px; letter-spacing: 0.1em; text-transform: uppercase; }
+
+  .toolbar { display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; }
+  .btn { padding: 8px 16px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.75rem; cursor: pointer; letter-spacing: 0.08em; transition: all 0.15s; border-radius: 4px; }
+  .btn:hover { border-color: var(--gold); color: var(--gold); }
+  .btn.primary { background: var(--gold); color: #000; border-color: var(--gold); font-weight: 600; }
+  .btn.primary:hover { background: #e0bc6a; }
+
+  section { margin-bottom: 28px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .section-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #201e1a; border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; }
+  .section-header h2 { font-family: 'Playfair Display', serif; font-size: 0.95rem; color: var(--gold); letter-spacing: 0.08em; }
+  .section-body { padding: 8px 0; }
+
+  .item-row { display: flex; align-items: center; gap: 8px; padding: 6px 16px; border-bottom: 1px solid #1f1d19; transition: background 0.1s; }
+  .item-row:last-child { border-bottom: none; }
+  .item-row:hover { background: #1f1d1a; }
+  .item-row.zero { opacity: 0.4; }
+
+  .item-name { flex: 1; font-size: 0.8rem; color: var(--text); background: transparent; border: none; font-family: 'DM Mono', monospace; outline: none; cursor: text; min-width: 0; }
+  .item-name:focus { color: var(--gold); border-bottom: 1px solid var(--gold-dim); }
+
+  .qty-controls { display: flex; align-items: center; gap: 6px; }
+  .qty-btn { width: 22px; height: 22px; border: 1px solid var(--border); background: transparent; color: var(--text-dim); font-size: 1rem; cursor: pointer; border-radius: 3px; display: flex; align-items: center; justify-content: center; transition: all 0.1s; }
+  .qty-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .qty-input { width: 36px; text-align: center; background: transparent; border: none; border-bottom: 1px solid var(--border); color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.85rem; outline: none; }
+  .qty-input:focus { border-color: var(--gold); color: var(--gold); }
+
+  .del-btn { width: 20px; height: 20px; border: none; background: transparent; color: var(--text-dim); cursor: pointer; font-size: 0.9rem; opacity: 0; transition: opacity 0.15s, color 0.15s; flex-shrink: 0; }
+  .item-row:hover .del-btn { opacity: 1; }
+  .del-btn:hover { color: var(--red); }
+
+  .add-row { padding: 8px 16px; display: flex; gap: 8px; border-top: 1px solid var(--border); }
+  .add-name { flex: 1; background: transparent; border: none; border-bottom: 1px solid var(--border); color: var(--text-dim); font-family: 'DM Mono', monospace; font-size: 0.78rem; outline: none; padding: 2px 4px; }
+  .add-name::placeholder { color: var(--text-dim); }
+  .add-name:focus { border-color: var(--gold-dim); color: var(--text); }
+  .add-qty { width: 40px; background: transparent; border: none; border-bottom: 1px solid var(--border); color: var(--text-dim); font-family: 'DM Mono', monospace; font-size: 0.78rem; outline: none; text-align: center; }
+  .add-confirm { background: transparent; border: 1px solid var(--gold-dim); color: var(--gold); font-size: 0.75rem; padding: 2px 10px; cursor: pointer; border-radius: 3px; font-family: 'DM Mono', monospace; transition: all 0.1s; }
+  .add-confirm:hover { background: var(--gold); color: #000; }
+
+  .compras-section { background: #1a1410; border: 1px solid #3d2f1a; border-radius: 6px; margin-bottom: 28px; overflow: hidden; }
+  .compras-section .section-header { background: #221a0f; border-bottom: 1px solid #3d2f1a; }
+  .compras-section .section-header h2 { color: #d4884a; }
+  .compra-item { display: flex; align-items: center; gap: 8px; padding: 7px 16px; border-bottom: 1px solid #221a0f; }
+  .compra-item:last-child { border-bottom: none; }
+  .compra-item:hover { background: #1f1710; }
+  .compra-name { flex: 1; font-size: 0.8rem; color: var(--text); background: transparent; border: none; font-family: 'DM Mono', monospace; outline: none; }
+  .compra-name:focus { color: #d4884a; border-bottom: 1px solid #d4884a; }
+  .note-tag { font-size: 0.65rem; color: #d4884a; background: #2a1f0f; padding: 1px 6px; border-radius: 10px; }
+
+  .collapsed .section-body, .collapsed .add-row { display: none; }
+  .chevron { transition: transform 0.2s; font-size: 0.7rem; color: var(--text-dim); }
+  .collapsed .chevron { transform: rotate(-90deg); }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--gold-dim); border-radius: 8px; width: 100%; max-width: 480px; padding: 20px; }
+  .modal h3 { font-family: 'Playfair Display', serif; color: var(--gold); margin-bottom: 12px; }
+  .modal textarea { width: 100%; height: 320px; background: var(--bg); border: 1px solid var(--border); color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.72rem; padding: 12px; border-radius: 4px; resize: none; outline: none; line-height: 1.6; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 12px; justify-content: flex-end; }
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <h2>GARRAFEIRA</h2>
+  <p>Cargando stock...</p>
+</div>
+
+<div id="sync-indicator">● en línea</div>
+
+<header>
+  <h1>GARRAFEIRA</h1>
+  <p id="fecha-header">22 · 05 · 2026 — Stock en tiempo real</p>
+</header>
+
+<div class="toolbar">
+  <button class="btn primary" onclick="openCopy()">📋 Copiar para WhatsApp</button>
+  <button class="btn" onclick="toggleAll(true)">Expandir todo</button>
+  <button class="btn" onclick="toggleAll(false)">Colapsar todo</button>
+</div>
+
+<div id="app"></div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3>📱 Copiar para WhatsApp</h3>
+    <textarea id="copy-text" readonly></textarea>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cerrar</button>
+      <button class="btn primary" onclick="copyText()">Copiar todo</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBJs4ilEDPo1Vn2g4bqghmKK2ijiCKRqeU",
+  authDomain: "garrafeira-stock.firebaseapp.com",
+  projectId: "garrafeira-stock",
+  storageBucket: "garrafeira-stock.firebasestorage.app",
+  messagingSenderId: "814746973163",
+  appId: "1:814746973163:web:211ff17c03603a9b4d0028",
+  measurementId: "G-EM4JLW2G40"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const DEFAULT_DATA = {
+  LICORES: [
+    ["Mariquinhas",1],["Kahlúa",2],["Macieira Cream",4],["Macieira Royal",2],
+    ["Tía María",2],["Advocaat",3],["Safari",3],["Disaronno",2],
+    ["Beirão",11],["Jägermeister",3],["Frangelico",2],["Drambuie",6],
+    ["St. Germain",3],["Amarguinha",3],["Baileys",4],["Malibu",2],
+    ["Triple Sec",9],["Amarula",1]
+  ],
+  APERITIVOS: [
+    ["Fernet Branca",1],["Aperol",3],["Martini Rubino",4],["Martini Ambrato",1],
+    ["Bitter 1872",3],["Martini Fiero",2],["Martini Bianco",2],
+    ["Martini Rosso",2],["Ricard",2],["Campari",2]
+  ],
+  TEQUILA: [
+    ["Patrón Silver",5],["Patrón Reposado",4],["Patrón Añejo",3],
+    ["Serviço",5],["Tequila Camino Real",6]
+  ],
+  GIN: [
+    ["Bombay Sapphire",3],["Bombay Pressé",2],["Bombay Premium",7],
+    ["Oxley",2],["Absolut Elyx",1],["Martin Miller's",2],["Nordés",1],
+    ["Hendrick's",4],["Hendrick's Grand Cabaret",5],["Bulldog",4],
+    ["Monkey 47",1],["Maré",2],["Citadelle",3],["Sharish",1]
+  ],
+  "VINOS & ESPUMANTES": [
+    ["Moët Ice",2],["Moët Impérial",12],["Moët Néctar",1],
+    ["Espumante Sangria",16],["Papa Figos Tinto",16],["Papa Figos Rosé",0],
+    ["Papa Figos Branco",7],["Alambre Roxo (5%)",2],["Porto Tawny",2],
+    ["Porto Branco",4],["Porto Offley",2],["Porto Ruby",3],
+    ["Raposeira Doce",11],["Raposeira Bruto",8],["Veuve Clicquot Rich",3],
+    ["Veuve Clicquot Brut",3],["Lambrusco",6]
+  ],
+  "AGUARDENTE / COGNAC": [
+    ["Alambre (20/21)",1],["Antiquíssima",2],["Aliança Velha",1],
+    ["Courvoisier",2],["Hennessy",5],["Ferrand 10Y",1],["Velho Barreiro",14]
+  ],
+  WHISKY: [
+    ["Nikka",1],["Cardhu",3],["James Martin's 32Y",1],["Macallan 12Y",1],
+    ["Johnnie Walker Blue Label",2],["Dimple Golden",3],["Jack Daniel's Apple",4],
+    ["Jack Daniel's Honey",4],["Jack Daniel's",4],["Craigellachie",2],
+    ["Aberfeldy 12Y",2],["Jameson",5],["Johnnie Walker Red Label",4],
+    ["Famous Grouse",3],["Johnnie Walker Black Label",3],["J&B",3],
+    ["Bushmills",3],["Dewar's White Label",2],["Dewar's 12Y",2],["Dewar's 8Y PT",1]
+  ],
+  VODKA: [
+    ["Grey Goose",6],["Grey Goose 1,75L",6],["Grey Goose Citron",7],
+    ["Grey Goose L'Orange",1],["Grey Goose La Poire",1],["Absolut",4],
+    ["Cîroc",4],["Cîroc Apple",2],["Cîroc Pineapple",3],["Cîroc Peach",2],
+    ["Belvedere",3],["Eristoff Black",4],["Eristoff",17],["Eristoff Pink",3],
+    ["Below 42",1],["Beluga",1]
+  ],
+  RON: [
+    ["Bacardí",24],["Bacardí Spiced",1],["Bacardí 4Y",2],["Bacardí 8Y",3],
+    ["Zacapa (½ botella)",1],["Santa Teresa 1796",3],["Santa Teresa Reserva",2],
+    ["Diplomático",1],["Kraken",3]
+  ],
+  JARABES: [
+    ["Fresa",3],["Melón",1],["Granadina",1],["Fernarum",1],
+    ["Mango",8],["Coco",2],["Vainilla",2],["Maracuyá",1],["Pera",1],["Melocotón",1]
+  ],
+  OTROS: [["Absenta",2]]
+};
+
+const DEFAULT_COMPRAS = ["Limas","Limones","Film transparente"];
+
+let state = {};
+let compras = [];
+let saveTimer = null;
+
+function showSync(status) {
+  const el = document.getElementById('sync-indicator');
+  if (status === 'saving') { el.textContent = '↑ guardando...'; el.className = 'saving'; }
+  else if (status === 'saved') { el.textContent = '✓ guardado'; el.className = 'saved'; setTimeout(() => { el.textContent = '● en línea'; el.className = ''; }, 2000); }
+  else { el.textContent = '● en línea'; el.className = ''; }
+}
+
+async function saveToFirebase() {
+  showSync('saving');
+  try {
+    const saveState = {};
+    Object.keys(state).forEach(cat => {
+      saveState[cat] = state[cat].map(i => ({ name: i.name, qty: i.qty }));
+    });
+    await setDoc(doc(db, "stock", "inventario"), { categories: saveState, compras: compras.map(c => c.name), updatedAt: new Date().toISOString() });
+    showSync('saved');
+  } catch(e) { console.error(e); showSync('online'); }
+}
+
+function scheduleSave() {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveToFirebase, 800);
+}
+
+function loadFromFirebase(data) {
+  if (data && data.categories) {
+    state = {};
+    Object.keys(data.categories).forEach(cat => {
+      state[cat] = data.categories[cat].map(i => ({ name: i.name, qty: i.qty, id: Math.random().toString(36) }));
+    });
+    compras = (data.compras || []).map(name => ({ name, id: Math.random().toString(36) }));
+  } else {
+    // First load — use defaults
+    state = {};
+    Object.keys(DEFAULT_DATA).forEach(cat => {
+      state[cat] = DEFAULT_DATA[cat].map(([name, qty]) => ({ name, qty, id: Math.random().toString(36) }));
+    });
+    compras = DEFAULT_COMPRAS.map(name => ({ name, id: Math.random().toString(36) }));
+    saveToFirebase();
+  }
+  document.getElementById('loading').style.display = 'none';
+  render();
+}
+
+// Listen for real-time changes
+onSnapshot(doc(db, "stock", "inventario"), (snap) => {
+  loadFromFirebase(snap.exists() ? snap.data() : null);
+});
+
+window.changeQty = function(cat, id, delta) {
+  const item = state[cat].find(i => i.id === id);
+  if (!item) return;
+  item.qty = Math.max(0, (parseInt(item.qty) || 0) + delta);
+  const input = document.querySelector(`#item-${id} .qty-input`);
+  if (input) input.value = item.qty;
+  const row = document.getElementById(`item-${id}`);
+  if (row) row.className = `item-row${item.qty == 0 ? ' zero' : ''}`;
+  scheduleSave();
+};
+
+window.setQty = function(cat, id, val) {
+  const item = state[cat].find(i => i.id === id);
+  if (item) { item.qty = Math.max(0, parseInt(val) || 0); scheduleSave(); }
+};
+
+window.updateName = function(cat, id, val) {
+  const item = state[cat].find(i => i.id === id);
+  if (item) { item.name = val; scheduleSave(); }
+};
+
+window.deleteItem = function(cat, id) {
+  state[cat] = state[cat].filter(i => i.id !== id);
+  document.getElementById(`item-${id}`)?.remove();
+  scheduleSave();
+};
+
+window.addItem = function(cat) {
+  const nameEl = document.getElementById(`add-name-${CSS.escape(cat)}`);
+  const qtyEl = document.getElementById(`add-qty-${CSS.escape(cat)}`);
+  const name = nameEl?.value.trim();
+  if (!name) return;
+  const qty = parseInt(qtyEl?.value) || 0;
+  state[cat].push({ name, qty, id: Math.random().toString(36) });
+  nameEl.value = ''; if (qtyEl) qtyEl.value = '';
+  render(); scheduleSave();
+};
+
+window.updateCompra = function(id, val) {
+  const item = compras.find(i => i.id === id);
+  if (item) { item.name = val; scheduleSave(); }
+};
+
+window.deleteCompra = function(id) {
+  compras = compras.filter(i => i.id !== id);
+  document.getElementById(`compra-${id}`)?.remove();
+  scheduleSave();
+};
+
+window.addCompra = function() {
+  const el = document.getElementById('add-compra-name');
+  const name = el?.value.trim();
+  if (!name) return;
+  compras.push({ name, id: Math.random().toString(36) });
+  el.value = ''; render(); scheduleSave();
+};
+
+window.toggleSection = function(header) {
+  header.closest('section, .compras-section').classList.toggle('collapsed');
+};
+
+window.toggleAll = function(open) {
+  document.querySelectorAll('section, .compras-section').forEach(s => {
+    open ? s.classList.remove('collapsed') : s.classList.add('collapsed');
+  });
+};
+
+window.openCopy = function() {
+  const today = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  let lines = [`🍾 *GARRAFEIRA — STOCK ${today}*`, ''];
+  if (compras.length > 0) {
+    lines.push('🛒 *COMPRAS PENDIENTES*');
+    compras.forEach(c => lines.push(`  • ${c.name}`));
+    lines.push('');
+  }
+  Object.keys(state).forEach(cat => {
+    if (!state[cat].length) return;
+    lines.push(`*${cat}*`);
+    state[cat].forEach(item => lines.push(`  ${item.name} — ${item.qty == 0 ? '❌ 0' : item.qty}`));
+    lines.push('');
+  });
+  document.getElementById('copy-text').value = lines.join('\n').trim();
+  document.getElementById('modal').classList.add('open');
+};
+
+window.closeModal = function() { document.getElementById('modal').classList.remove('open'); };
+
+window.copyText = function() {
+  const ta = document.getElementById('copy-text');
+  ta.select();
+  navigator.clipboard.writeText(ta.value).then(() => {
+    const btn = document.querySelector('.modal .btn.primary');
+    btn.textContent = '✓ Copiado!';
+    setTimeout(() => btn.textContent = 'Copiar todo', 2000);
+  });
+};
+
+document.getElementById('modal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+
+function render() {
+  const app = document.getElementById('app');
+  app.innerHTML = '';
+
+  const cs = document.createElement('div');
+  cs.className = 'compras-section';
+  cs.innerHTML = `
+    <div class="section-header" onclick="toggleSection(this)">
+      <h2>🛒 COMPRAS PENDIENTES</h2>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      ${compras.map(item => `
+        <div class="compra-item" id="compra-${item.id}">
+          <input class="compra-name" value="${item.name}" onchange="updateCompra('${item.id}', this.value)" />
+          <span class="note-tag">pendiente</span>
+          <button class="del-btn" onclick="deleteCompra('${item.id}')">✕</button>
+        </div>`).join('')}
+    </div>
+    <div class="add-row">
+      <input class="add-name" id="add-compra-name" placeholder="+ Añadir producto..." />
+      <button class="add-confirm" onclick="addCompra()">+ Add</button>
+    </div>`;
+  app.appendChild(cs);
+
+  Object.keys(state).forEach(cat => {
+    const sec = document.createElement('section');
+    const catId = cat.replace(/[^a-zA-Z0-9]/g, '_');
+    sec.innerHTML = `
+      <div class="section-header" onclick="toggleSection(this)">
+        <h2>${cat}</h2>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="section-body">
+        ${state[cat].map(item => `
+          <div class="item-row${item.qty == 0 ? ' zero' : ''}" id="item-${item.id}">
+            <input class="item-name" value="${item.name}" onchange="updateName('${cat}', '${item.id}', this.value)" />
+            <div class="qty-controls">
+              <button class="qty-btn" onclick="changeQty('${cat}', '${item.id}', -1)">−</button>
+              <input class="qty-input" type="number" value="${item.qty}" min="0" onchange="setQty('${cat}', '${item.id}', this.value)" />
+              <button class="qty-btn" onclick="changeQty('${cat}', '${item.id}', 1)">+</button>
+            </div>
+            <button class="del-btn" onclick="deleteItem('${cat}', '${item.id}')">✕</button>
+          </div>`).join('')}
+      </div>
+      <div class="add-row">
+        <input class="add-name" id="add-name-${catId}" placeholder="+ Añadir producto..." />
+        <input class="add-qty" id="add-qty-${catId}" type="number" min="0" placeholder="0" />
+        <button class="add-confirm" onclick="addItem('${cat}')">+ Add</button>
+      </div>`;
+    app.appendChild(sec);
+  });
+}
+</script>
+</body>
+</html>
