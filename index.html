@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Garrafeira — Stock Live</title>
+<title>Garrafeira 2.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -16,94 +16,125 @@
     --text-dim: #7a7060;
     --red: #c0392b;
     --green: #27ae60;
+    --orange: #e67e22;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; min-height: 100vh; padding: 24px 16px 80px; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; min-height: 100vh; padding: 0 0 80px; }
 
-  #loading {
-    position: fixed; inset: 0; background: var(--bg);
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    z-index: 999; gap: 16px;
-  }
-  #loading h2 { font-family: 'Playfair Display', serif; color: var(--gold); font-size: 1.5rem; }
+  #loading { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999; gap: 16px; }
+  #loading h2 { font-family: 'Playfair Display', serif; color: var(--gold); font-size: 1.8rem; }
   #loading p { color: var(--text-dim); font-size: 0.8rem; }
-  .spinner {
-    width: 36px; height: 36px; border: 3px solid var(--border);
-    border-top-color: var(--gold); border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
+  .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  #sync-indicator {
-    position: fixed; top: 12px; right: 12px;
-    font-size: 0.65rem; color: var(--text-dim);
-    background: var(--surface); border: 1px solid var(--border);
-    padding: 4px 10px; border-radius: 20px; z-index: 50;
-    transition: all 0.3s;
-  }
-  #sync-indicator.saving { color: var(--gold); border-color: var(--gold-dim); }
-  #sync-indicator.saved { color: var(--green); border-color: var(--green); }
+  .app-header { background: #120f0d; border-bottom: 1px solid var(--gold-dim); padding: 16px; position: sticky; top: 0; z-index: 40; }
+  .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .header-top h1 { font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--gold); }
+  .header-date { font-size: 0.7rem; color: var(--text-dim); letter-spacing: 0.1em; }
 
-  header { text-align: center; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 1px solid var(--gold-dim); }
-  header h1 { font-family: 'Playfair Display', serif; font-size: 2rem; color: var(--gold); letter-spacing: 0.05em; }
-  header p { color: var(--text-dim); font-size: 0.75rem; margin-top: 4px; letter-spacing: 0.1em; text-transform: uppercase; }
+  #sync { font-size: 0.65rem; color: var(--text-dim); background: var(--surface); border: 1px solid var(--border); padding: 3px 8px; border-radius: 20px; transition: all 0.3s; white-space: nowrap; }
+  #sync.saving { color: var(--gold); border-color: var(--gold-dim); }
+  #sync.saved { color: var(--green); border-color: var(--green); }
+  #sync.error { color: var(--red); border-color: var(--red); }
 
-  .toolbar { display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; }
-  .btn { padding: 8px 16px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.75rem; cursor: pointer; letter-spacing: 0.08em; transition: all 0.15s; border-radius: 4px; }
-  .btn:hover { border-color: var(--gold); color: var(--gold); }
+  .search-wrap { position: relative; }
+  .search-input { width: 100%; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.85rem; padding: 10px 16px 10px 38px; border-radius: 6px; outline: none; transition: border-color 0.2s; }
+  .search-input:focus { border-color: var(--gold); }
+  .search-input::placeholder { color: var(--text-dim); }
+  .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-dim); font-size: 0.9rem; pointer-events: none; }
+  .search-clear { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 1rem; display: none; }
+
+  .toolbar { display: flex; gap: 6px; padding: 10px 16px; flex-wrap: wrap; border-bottom: 1px solid var(--border); }
+  .btn { padding: 7px 12px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.7rem; cursor: pointer; border-radius: 4px; transition: all 0.15s; touch-action: manipulation; -webkit-tap-highlight-color: transparent; white-space: nowrap; }
+  .btn:active { border-color: var(--gold); color: var(--gold); }
   .btn.primary { background: var(--gold); color: #000; border-color: var(--gold); font-weight: 600; }
-  .btn.primary:hover { background: #e0bc6a; }
+  .btn.active { border-color: var(--orange); color: var(--orange); }
 
-  section { margin-bottom: 28px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
-  .section-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #201e1a; border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; }
-  .section-header h2 { font-family: 'Playfair Display', serif; font-size: 0.95rem; color: var(--gold); letter-spacing: 0.08em; }
-  .section-body { padding: 8px 0; }
+  .content { padding: 16px; }
 
-  .item-row { display: flex; align-items: center; gap: 8px; padding: 6px 16px; border-bottom: 1px solid #1f1d19; transition: background 0.1s; }
+  /* PANEL POCO STOCK */
+  .panel { display: none; background: #1a0f0a; border: 1px solid #5a2d1a; border-radius: 6px; margin-bottom: 16px; overflow: hidden; }
+  .panel.open { display: block; }
+  .panel-header { padding: 10px 16px; background: #221208; border-bottom: 1px solid #5a2d1a; font-family: 'Playfair Display', serif; font-size: 0.9rem; color: var(--orange); }
+  .alert-item { display: flex; justify-content: space-between; align-items: center; padding: 7px 16px; border-bottom: 1px solid #1a0f0a; font-size: 0.78rem; }
+  .alert-item:last-child { border-bottom: none; }
+  .alert-name { color: var(--text-dim); }
+  .alert-qty { color: var(--orange); font-weight: 600; }
+  .panel-empty { padding: 12px 16px; font-size: 0.75rem; color: var(--text-dim); text-align: center; }
+
+  /* PANEL HISTORIAL */
+  .hist-panel { display: none; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 16px; overflow: hidden; max-height: 420px; overflow-y: auto; }
+  .hist-panel.open { display: block; }
+  .hist-panel-header { padding: 10px 16px; background: #1a1814; border-bottom: 1px solid var(--border); font-family: 'Playfair Display', serif; font-size: 0.9rem; color: var(--gold); position: sticky; top: 0; }
+  .hist-day { border-bottom: 1px solid var(--border); }
+  .hist-day-title { padding: 8px 16px; font-size: 0.7rem; color: var(--gold-dim); letter-spacing: 0.1em; background: #151311; text-transform: uppercase; }
+  .hist-entry { display: flex; align-items: center; gap: 8px; padding: 6px 16px; border-bottom: 1px solid #1a1814; font-size: 0.75rem; }
+  .hist-entry:last-child { border-bottom: none; }
+  .hist-name { flex: 1; color: var(--text); }
+  .hist-delta { font-weight: 600; padding: 1px 6px; border-radius: 10px; font-size: 0.72rem; }
+  .hist-delta.out { color: var(--red); background: #1f0a0a; }
+  .hist-delta.in { color: var(--green); background: #0a1f0a; }
+  .hist-time { font-size: 0.65rem; color: var(--text-dim); }
+  .hist-pending { font-size: 0.65rem; color: var(--orange); background: #2a1f0f; padding: 1px 5px; border-radius: 8px; }
+  .hist-empty { padding: 16px; text-align: center; font-size: 0.78rem; color: var(--text-dim); }
+
+  section { margin-bottom: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .section-header { display: flex; align-items: center; justify-content: space-between; padding: 11px 16px; background: #201e1a; border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; }
+  .section-header h2 { font-family: 'Playfair Display', serif; font-size: 0.9rem; color: var(--gold); letter-spacing: 0.06em; }
+  .sec-meta { display: flex; align-items: center; gap: 8px; }
+  .sec-count { font-size: 0.65rem; color: var(--text-dim); }
+  .chevron { font-size: 0.65rem; color: var(--text-dim); transition: transform 0.2s; }
+  .collapsed .chevron { transform: rotate(-90deg); }
+  .collapsed .section-body, .collapsed .add-row { display: none; }
+
+  .item-row { display: flex; align-items: center; gap: 8px; padding: 7px 16px; border-bottom: 1px solid #1a1814; transition: background 0.1s; }
   .item-row:last-child { border-bottom: none; }
-  .item-row:hover { background: #1f1d1a; }
-  .item-row.zero { opacity: 0.4; }
+  .item-row.zero { opacity: 0.35; }
+  .item-row.low { background: #1a100a; }
+  .item-row.highlight { animation: flash 1.5s ease; }
+  @keyframes flash { 0%,100% { background: transparent; } 30%,70% { background: #2a2510; } }
 
-  .item-name { flex: 1; font-size: 0.8rem; color: var(--text); background: transparent; border: none; font-family: 'DM Mono', monospace; outline: none; cursor: text; min-width: 0; }
+  .item-name { flex: 1; font-size: 0.8rem; color: var(--text); background: transparent; border: none; font-family: 'DM Mono', monospace; outline: none; min-width: 0; }
   .item-name:focus { color: var(--gold); border-bottom: 1px solid var(--gold-dim); }
 
-  .qty-controls { display: flex; align-items: center; gap: 6px; }
-  .qty-btn { width: 22px; height: 22px; border: 1px solid var(--border); background: transparent; color: var(--text-dim); font-size: 1rem; cursor: pointer; border-radius: 3px; display: flex; align-items: center; justify-content: center; transition: all 0.1s; }
-  .qty-btn:hover { border-color: var(--gold); color: var(--gold); }
-  .qty-input { width: 36px; text-align: center; background: transparent; border: none; border-bottom: 1px solid var(--border); color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.85rem; outline: none; }
-  .qty-input:focus { border-color: var(--gold); color: var(--gold); }
+  .qty-controls { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+  .qty-btn { width: 34px; height: 34px; border: 1px solid var(--border); background: #201e1a; color: var(--text); font-size: 1.2rem; cursor: pointer; border-radius: 4px; display: flex; align-items: center; justify-content: center; touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; }
+  .qty-btn:active { border-color: var(--gold); color: var(--gold); transform: scale(0.95); }
+  .qty-display { width: 36px; text-align: center; font-size: 0.95rem; font-weight: 500; color: var(--text); }
+  .qty-display.low { color: var(--orange); }
 
-  .del-btn { width: 20px; height: 20px; border: none; background: transparent; color: var(--text-dim); cursor: pointer; font-size: 0.9rem; opacity: 0; transition: opacity 0.15s, color 0.15s; flex-shrink: 0; }
+  .del-btn { width: 26px; height: 26px; border: none; background: transparent; color: var(--text-dim); cursor: pointer; font-size: 0.85rem; opacity: 0; transition: opacity 0.15s; flex-shrink: 0; }
   .item-row:hover .del-btn { opacity: 1; }
-  .del-btn:hover { color: var(--red); }
+  .del-btn:active { color: var(--red); opacity: 1; }
 
-  .add-row { padding: 8px 16px; display: flex; gap: 8px; border-top: 1px solid var(--border); }
-  .add-name { flex: 1; background: transparent; border: none; border-bottom: 1px solid var(--border); color: var(--text-dim); font-family: 'DM Mono', monospace; font-size: 0.78rem; outline: none; padding: 2px 4px; }
-  .add-name::placeholder { color: var(--text-dim); }
+  .add-row { padding: 8px 16px; display: flex; gap: 8px; border-top: 1px solid var(--border); background: #171512; }
+  .add-name { flex: 1; background: transparent; border: none; border-bottom: 1px solid var(--border); color: var(--text-dim); font-family: 'DM Mono', monospace; font-size: 0.78rem; outline: none; padding: 3px 4px; }
   .add-name:focus { border-color: var(--gold-dim); color: var(--text); }
-  .add-qty { width: 40px; background: transparent; border: none; border-bottom: 1px solid var(--border); color: var(--text-dim); font-family: 'DM Mono', monospace; font-size: 0.78rem; outline: none; text-align: center; }
-  .add-confirm { background: transparent; border: 1px solid var(--gold-dim); color: var(--gold); font-size: 0.75rem; padding: 2px 10px; cursor: pointer; border-radius: 3px; font-family: 'DM Mono', monospace; transition: all 0.1s; }
-  .add-confirm:hover { background: var(--gold); color: #000; }
+  .add-qty { width: 42px; background: transparent; border: none; border-bottom: 1px solid var(--border); color: var(--text-dim); font-family: 'DM Mono', monospace; font-size: 0.78rem; outline: none; text-align: center; }
+  .add-confirm { background: transparent; border: 1px solid var(--gold-dim); color: var(--gold); font-size: 0.72rem; padding: 4px 10px; cursor: pointer; border-radius: 3px; font-family: 'DM Mono', monospace; touch-action: manipulation; }
+  .add-confirm:active { background: var(--gold); color: #000; }
 
-  .compras-section { background: #1a1410; border: 1px solid #3d2f1a; border-radius: 6px; margin-bottom: 28px; overflow: hidden; }
+  .compras-section { background: #1a1410; border: 1px solid #3d2f1a; border-radius: 6px; margin-bottom: 20px; overflow: hidden; }
   .compras-section .section-header { background: #221a0f; border-bottom: 1px solid #3d2f1a; }
   .compras-section .section-header h2 { color: #d4884a; }
-  .compra-item { display: flex; align-items: center; gap: 8px; padding: 7px 16px; border-bottom: 1px solid #221a0f; }
+  .compra-item { display: flex; align-items: center; gap: 8px; padding: 7px 16px; border-bottom: 1px solid #1a1208; }
   .compra-item:last-child { border-bottom: none; }
-  .compra-item:hover { background: #1f1710; }
   .compra-name { flex: 1; font-size: 0.8rem; color: var(--text); background: transparent; border: none; font-family: 'DM Mono', monospace; outline: none; }
-  .compra-name:focus { color: #d4884a; border-bottom: 1px solid #d4884a; }
-  .note-tag { font-size: 0.65rem; color: #d4884a; background: #2a1f0f; padding: 1px 6px; border-radius: 10px; }
+  .note-tag { font-size: 0.62rem; color: #d4884a; background: #2a1f0f; padding: 1px 6px; border-radius: 10px; flex-shrink: 0; }
 
-  .collapsed .section-body, .collapsed .add-row { display: none; }
-  .chevron { transition: transform 0.2s; font-size: 0.7rem; color: var(--text-dim); }
-  .collapsed .chevron { transform: rotate(-90deg); }
+  #search-results { display: none; }
+  #search-results.active { display: block; }
+  .search-result-item { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--border); background: var(--surface); cursor: pointer; }
+  .search-result-item:active { background: #201e1a; }
+  .search-cat-tag { font-size: 0.62rem; color: var(--text-dim); background: var(--border); padding: 1px 6px; border-radius: 10px; flex-shrink: 0; }
+  .search-name { flex: 1; font-size: 0.82rem; }
+  .no-results { text-align: center; padding: 24px; color: var(--text-dim); font-size: 0.8rem; }
 
   .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
   .modal-overlay.open { display: flex; }
   .modal { background: var(--surface); border: 1px solid var(--gold-dim); border-radius: 8px; width: 100%; max-width: 480px; padding: 20px; }
   .modal h3 { font-family: 'Playfair Display', serif; color: var(--gold); margin-bottom: 12px; }
-  .modal textarea { width: 100%; height: 320px; background: var(--bg); border: 1px solid var(--border); color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.72rem; padding: 12px; border-radius: 4px; resize: none; outline: none; line-height: 1.6; }
+  .modal textarea { width: 100%; height: 300px; background: var(--bg); border: 1px solid var(--border); color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.72rem; padding: 12px; border-radius: 4px; resize: none; outline: none; line-height: 1.6; }
   .modal-actions { display: flex; gap: 10px; margin-top: 12px; justify-content: flex-end; }
 </style>
 </head>
@@ -112,23 +143,49 @@
 <div id="loading">
   <div class="spinner"></div>
   <h2>GARRAFEIRA</h2>
-  <p>Cargando stock...</p>
+  <p id="load-msg">Cargando stock...</p>
 </div>
 
-<div id="sync-indicator">● en línea</div>
-
-<header>
-  <h1>GARRAFEIRA</h1>
-  <p id="fecha-header">22 · 05 · 2026 — Stock en tiempo real</p>
-</header>
+<div class="app-header">
+  <div class="header-top">
+    <h1>🍾 GARRAFEIRA</h1>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="header-date" id="fecha"></span>
+      <span id="sync">● sync</span>
+    </div>
+  </div>
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input class="search-input" id="search" placeholder="Buscar producto..." oninput="handleSearch(this.value)" />
+    <button class="search-clear" id="search-clear" onclick="clearSearch()">✕</button>
+  </div>
+</div>
 
 <div class="toolbar">
-  <button class="btn primary" onclick="openCopy()">📋 Copiar para WhatsApp</button>
-  <button class="btn" onclick="toggleAll(true)">Expandir todo</button>
-  <button class="btn" onclick="toggleAll(false)">Colapsar todo</button>
+  <button class="btn primary" onclick="openCopy()">📋 WhatsApp</button>
+  <button class="btn" id="btn-stock" onclick="togglePanel('stock')">⚠️ Stock</button>
+  <button class="btn" id="btn-hist" onclick="togglePanel('hist')">📊 Historial</button>
+  <button class="btn" onclick="toggleAll(true)">↕ Exp.</button>
+  <button class="btn" onclick="toggleAll(false)">↕ Col.</button>
+  <button class="btn" onclick="reloadData()" style="margin-left:auto">↺</button>
 </div>
 
-<div id="app"></div>
+<div class="content">
+  <!-- Panel poco stock -->
+  <div class="panel" id="panel-stock">
+    <div class="panel-header">⚠️ POCO STOCK — 2 unidades o menos</div>
+    <div id="low-stock-body"></div>
+  </div>
+
+  <!-- Panel historial -->
+  <div class="hist-panel" id="panel-hist">
+    <div class="hist-panel-header">📊 HISTORIAL DE MOVIMIENTOS</div>
+    <div id="hist-body"></div>
+  </div>
+
+  <div id="search-results"></div>
+  <div id="app"></div>
+</div>
 
 <div class="modal-overlay" id="modal">
   <div class="modal">
@@ -143,7 +200,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBJs4ilEDPo1Vn2g4bqghmKK2ijiCKRqeU",
@@ -151,282 +208,426 @@ const firebaseConfig = {
   projectId: "garrafeira-stock",
   storageBucket: "garrafeira-stock.firebasestorage.app",
   messagingSenderId: "814746973163",
-  appId: "1:814746973163:web:211ff17c03603a9b4d0028",
-  measurementId: "G-EM4JLW2G40"
+  appId: "1:814746973163:web:211ff17c03603a9b4d0028"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const LOW_STOCK = 2;
+const HIST_DELAY = 20 * 60 * 1000; // 20 minutos
 
 const DEFAULT_DATA = {
-  LICORES: [
-    ["Mariquinhas",1],["Kahlúa",2],["Macieira Cream",4],["Macieira Royal",2],
-    ["Tía María",2],["Advocaat",3],["Safari",3],["Disaronno",2],
-    ["Beirão",11],["Jägermeister",3],["Frangelico",2],["Drambuie",6],
-    ["St. Germain",3],["Amarguinha",3],["Baileys",4],["Malibu",2],
-    ["Triple Sec",9],["Amarula",1]
-  ],
-  APERITIVOS: [
-    ["Fernet Branca",1],["Aperol",3],["Martini Rubino",4],["Martini Ambrato",1],
-    ["Bitter 1872",3],["Martini Fiero",2],["Martini Bianco",2],
-    ["Martini Rosso",2],["Ricard",2],["Campari",2]
-  ],
-  TEQUILA: [
-    ["Patrón Silver",5],["Patrón Reposado",4],["Patrón Añejo",3],
-    ["Serviço",5],["Tequila Camino Real",6]
-  ],
-  GIN: [
-    ["Bombay Sapphire",3],["Bombay Pressé",2],["Bombay Premium",7],
-    ["Oxley",2],["Absolut Elyx",1],["Martin Miller's",2],["Nordés",1],
-    ["Hendrick's",4],["Hendrick's Grand Cabaret",5],["Bulldog",4],
-    ["Monkey 47",1],["Maré",2],["Citadelle",3],["Sharish",1]
-  ],
-  "VINOS & ESPUMANTES": [
-    ["Moët Ice",2],["Moët Impérial",12],["Moët Néctar",1],
-    ["Espumante Sangria",16],["Papa Figos Tinto",16],["Papa Figos Rosé",0],
-    ["Papa Figos Branco",7],["Alambre Roxo (5%)",2],["Porto Tawny",2],
-    ["Porto Branco",4],["Porto Offley",2],["Porto Ruby",3],
-    ["Raposeira Doce",11],["Raposeira Bruto",8],["Veuve Clicquot Rich",3],
-    ["Veuve Clicquot Brut",3],["Lambrusco",6]
-  ],
-  "AGUARDENTE / COGNAC": [
-    ["Alambre (20/21)",1],["Antiquíssima",2],["Aliança Velha",1],
-    ["Courvoisier",2],["Hennessy",5],["Ferrand 10Y",1],["Velho Barreiro",14]
-  ],
-  WHISKY: [
-    ["Nikka",1],["Cardhu",3],["James Martin's 32Y",1],["Macallan 12Y",1],
-    ["Johnnie Walker Blue Label",2],["Dimple Golden",3],["Jack Daniel's Apple",4],
-    ["Jack Daniel's Honey",4],["Jack Daniel's",4],["Craigellachie",2],
-    ["Aberfeldy 12Y",2],["Jameson",5],["Johnnie Walker Red Label",4],
-    ["Famous Grouse",3],["Johnnie Walker Black Label",3],["J&B",3],
-    ["Bushmills",3],["Dewar's White Label",2],["Dewar's 12Y",2],["Dewar's 8Y PT",1]
-  ],
-  VODKA: [
-    ["Grey Goose",6],["Grey Goose 1,75L",6],["Grey Goose Citron",7],
-    ["Grey Goose L'Orange",1],["Grey Goose La Poire",1],["Absolut",4],
-    ["Cîroc",4],["Cîroc Apple",2],["Cîroc Pineapple",3],["Cîroc Peach",2],
-    ["Belvedere",3],["Eristoff Black",4],["Eristoff",17],["Eristoff Pink",3],
-    ["Below 42",1],["Beluga",1]
-  ],
-  RON: [
-    ["Bacardí",24],["Bacardí Spiced",1],["Bacardí 4Y",2],["Bacardí 8Y",3],
-    ["Zacapa (½ botella)",1],["Santa Teresa 1796",3],["Santa Teresa Reserva",2],
-    ["Diplomático",1],["Kraken",3]
-  ],
-  JARABES: [
-    ["Fresa",3],["Melón",1],["Granadina",1],["Fernarum",1],
-    ["Mango",8],["Coco",2],["Vainilla",2],["Maracuyá",1],["Pera",1],["Melocotón",1]
-  ],
+  LICORES: [["Mariquinhas",1],["Kahlúa",2],["Macieira Cream",4],["Macieira Royal",2],["Tía María",2],["Advocaat",3],["Safari",3],["Disaronno",2],["Beirão",11],["Jägermeister",3],["Frangelico",2],["Drambuie",6],["St. Germain",3],["Amarguinha",3],["Baileys",4],["Malibu",2],["Triple Sec",9],["Amarula",1]],
+  APERITIVOS: [["Fernet Branca",1],["Aperol",3],["Martini Rubino",4],["Martini Ambrato",1],["Bitter 1872",3],["Martini Fiero",2],["Martini Bianco",2],["Martini Rosso",2],["Ricard",2],["Campari",2]],
+  TEQUILA: [["Patrón Silver",5],["Patrón Reposado",4],["Patrón Añejo",3],["Serviço",5],["Tequila Camino Real",6]],
+  GIN: [["Bombay Sapphire",4],["Bombay Pressé",2],["Bombay Premium",7],["Oxley",2],["Absolut Elyx",1],["Martin Miller's",2],["Nordés",1],["Hendrick's",4],["Hendrick's Grand Cabaret",5],["Bulldog",4],["Monkey 47",3],["Maré",2],["Citadelle",3],["Sharish",1]],
+  "VINOS & ESPUMANTES": [["Moët Ice",2],["Moët Impérial",12],["Moët Néctar",1],["Espumante Sangria",16],["Papa Figos Tinto",16],["Papa Figos Rosé",0],["Papa Figos Branco",7],["Alambre Roxo (5%)",2],["Porto Tawny",2],["Porto Branco",4],["Porto Offley",2],["Porto Ruby",3],["Raposeira Doce",11],["Raposeira Bruto",8],["Veuve Clicquot Rich",3],["Veuve Clicquot Brut",3],["Lambrusco",6]],
+  "AGUARDENTE / COGNAC": [["Alambre (20/21)",1],["Antiquíssima",2],["Aliança Velha",1],["Courvoisier",2],["Hennessy",5],["Ferrand 10Y",1],["Velho Barreiro",12]],
+  WHISKY: [["Nikka",1],["Cardhu",3],["James Martin's 32Y",1],["Macallan 12Y",1],["Johnnie Walker Blue Label",2],["Dimple Golden",3],["Jack Daniel's Apple",4],["Jack Daniel's Honey",4],["Jack Daniel's",4],["Craigellachie",2],["Aberfeldy 12Y",2],["Jameson",5],["Johnnie Walker Red Label",4],["Famous Grouse",3],["Johnnie Walker Black Label",3],["J&B",3],["Bushmills",3],["Dewar's White Label",2],["Dewar's 12Y",2],["Dewar's 8Y PT",1]],
+  VODKA: [["Grey Goose",6],["Grey Goose 1,75L",6],["Grey Goose Citron",7],["Grey Goose L'Orange",1],["Grey Goose La Poire",1],["Absolut",4],["Cîroc",4],["Cîroc Apple",2],["Cîroc Pineapple",3],["Cîroc Peach",2],["Belvedere",3],["Eristoff Black",4],["Eristoff",17],["Eristoff Pink",3],["Below 42",1],["Beluga",1]],
+  RON: [["Bacardí",24],["Bacardí Spiced",1],["Bacardí 4Y",2],["Bacardí 8Y",3],["Zacapa (½ botella)",1],["Santa Teresa 1796",3],["Santa Teresa Reserva",2],["Diplomático",1],["Kraken",3]],
+  JARABES: [["Fresa",3],["Melón",1],["Granadina",1],["Fernarum",1],["Mango",8],["Coco",2],["Vainilla",2],["Maracuyá",1],["Pera",1],["Melocotón",1]],
   OTROS: [["Absenta",2]]
 };
-
 const DEFAULT_COMPRAS = ["Limas","Limones","Film transparente"];
 
 let state = {};
 let compras = [];
-let saveTimer = null;
+// Historial: { date: "2026-06-01", entries: [{name, cat, delta, from, to, time, pending, timer}] }
+let historial = [];
+// Cambios pendientes antes de guardar en historial (20 min)
+let pendingHist = {}; // key: `${cat}::${name}` => {name, cat, from, to, time, timer}
 
-function showSync(status) {
-  const el = document.getElementById('sync-indicator');
-  if (status === 'saving') { el.textContent = '↑ guardando...'; el.className = 'saving'; }
-  else if (status === 'saved') { el.textContent = '✓ guardado'; el.className = 'saved'; setTimeout(() => { el.textContent = '● en línea'; el.className = ''; }, 2000); }
-  else { el.textContent = '● en línea'; el.className = ''; }
+function updateDate() {
+  const now = new Date();
+  const dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  document.getElementById('fecha').textContent = `${dias[now.getDay()]} ${now.getDate()} ${meses[now.getMonth()]}`;
+}
+updateDate();
+setInterval(updateDate, 60000);
+
+function todayStr() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 }
 
-async function saveToFirebase() {
+function timeStr() {
+  const now = new Date();
+  return `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+}
+
+function showSync(status, msg) {
+  const el = document.getElementById('sync');
+  const msgs = { saving: '↑ guardando...', saved: '✓ guardado', error: '⚠ error' };
+  el.textContent = msg || msgs[status] || '● sync';
+  el.className = status;
+  if (status === 'saved') setTimeout(() => { el.textContent = '● sync'; el.className = ''; }, 2000);
+}
+
+async function saveItemSafe(cat, id) {
+  const item = state[cat]?.find(i => i.id === id);
+  if (!item) return;
+  showSync('saving');
+  try {
+    const ref = doc(db, "stock", "inventario");
+    await runTransaction(db, async (transaction) => {
+      const snap = await transaction.get(ref);
+      let data = snap.exists() ? snap.data() : { categories: {}, compras: [], historial: [] };
+      if (!data.categories[cat]) data.categories[cat] = [];
+      const idx = data.categories[cat].findIndex(i => i.name === item.name);
+      if (idx >= 0) data.categories[cat][idx].qty = item.qty;
+      else data.categories[cat].push({ name: item.name, qty: item.qty });
+      data.updatedAt = new Date().toISOString();
+      transaction.set(ref, data);
+    });
+    showSync('saved');
+  } catch(e) {
+    showSync('error');
+    setTimeout(() => saveItemSafe(cat, id), 3000);
+  }
+}
+
+async function saveAll() {
   showSync('saving');
   try {
     const saveState = {};
     Object.keys(state).forEach(cat => {
       saveState[cat] = state[cat].map(i => ({ name: i.name, qty: i.qty }));
     });
-    await setDoc(doc(db, "stock", "inventario"), { categories: saveState, compras: compras.map(c => c.name), updatedAt: new Date().toISOString() });
+    await setDoc(doc(db, "stock", "inventario"), {
+      categories: saveState,
+      compras: compras.map(c => c.name),
+      historial: historial,
+      updatedAt: new Date().toISOString()
+    });
     showSync('saved');
-  } catch(e) { console.error(e); showSync('online'); }
-}
-
-function scheduleSave() {
-  if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(saveToFirebase, 800);
-}
-
-function loadFromFirebase(data) {
-  if (data && data.categories) {
-    state = {};
-    Object.keys(data.categories).forEach(cat => {
-      state[cat] = data.categories[cat].map(i => ({ name: i.name, qty: i.qty, id: Math.random().toString(36) }));
-    });
-    compras = (data.compras || []).map(name => ({ name, id: Math.random().toString(36) }));
-  } else {
-    // First load — use defaults
-    state = {};
-    Object.keys(DEFAULT_DATA).forEach(cat => {
-      state[cat] = DEFAULT_DATA[cat].map(([name, qty]) => ({ name, qty, id: Math.random().toString(36) }));
-    });
-    compras = DEFAULT_COMPRAS.map(name => ({ name, id: Math.random().toString(36) }));
-    saveToFirebase();
+  } catch(e) {
+    showSync('error');
+    setTimeout(saveAll, 3000);
   }
-  document.getElementById('loading').style.display = 'none';
-  render();
 }
 
-// Listen for real-time changes
-onSnapshot(doc(db, "stock", "inventario"), (snap) => {
-  loadFromFirebase(snap.exists() ? snap.data() : null);
-});
+async function saveHistorial() {
+  try {
+    const ref = doc(db, "stock", "inventario");
+    await runTransaction(db, async (transaction) => {
+      const snap = await transaction.get(ref);
+      let data = snap.exists() ? snap.data() : {};
+      data.historial = historial;
+      data.updatedAt = new Date().toISOString();
+      transaction.set(ref, data);
+    });
+  } catch(e) { console.error('Error guardando historial', e); }
+}
 
-window.changeQty = function(cat, id, delta) {
-  const item = state[cat].find(i => i.id === id);
-  if (!item) return;
-  item.qty = Math.max(0, (parseInt(item.qty) || 0) + delta);
-  const input = document.querySelector(`#item-${id} .qty-input`);
-  if (input) input.value = item.qty;
-  const row = document.getElementById(`item-${id}`);
-  if (row) row.className = `item-row${item.qty == 0 ? ' zero' : ''}`;
-  scheduleSave();
+// Registra un cambio en historial después de 20 minutos
+function registerChange(cat, name, fromQty, toQty) {
+  const key = `${cat}::${name}`;
+  if (pendingHist[key]) {
+    clearTimeout(pendingHist[key].timer);
+    // Actualiza el "to" pero mantiene el "from" original
+    pendingHist[key].to = toQty;
+    pendingHist[key].time = timeStr();
+  } else {
+    pendingHist[key] = { name, cat, from: fromQty, to: toQty, time: timeStr() };
+  }
+  pendingHist[key].timer = setTimeout(() => {
+    commitToHistorial(key);
+  }, HIST_DELAY);
+  renderHistorial();
+}
+
+function commitToHistorial(key) {
+  const p = pendingHist[key];
+  if (!p) return;
+  if (p.from === p.to) { delete pendingHist[key]; renderHistorial(); return; }
+  const today = todayStr();
+  let dayEntry = historial.find(d => d.date === today);
+  if (!dayEntry) { dayEntry = { date: today, entries: [] }; historial.unshift(dayEntry); }
+  dayEntry.entries.unshift({ name: p.name, cat: p.cat, from: p.from, to: p.to, delta: p.to - p.from, time: p.time });
+  delete pendingHist[key];
+  saveHistorial();
+  renderHistorial();
+}
+
+async function loadOnce() {
+  try {
+    const snap = await getDoc(doc(db, "stock", "inventario"));
+    const data = snap.exists() ? snap.data() : null;
+    if (data && data.categories) {
+      state = {};
+      Object.keys(data.categories).forEach(cat => {
+        state[cat] = data.categories[cat].map(i => ({ name: i.name, qty: i.qty, id: Math.random().toString(36).slice(2) }));
+      });
+      compras = (data.compras || []).map(name => ({ name, id: Math.random().toString(36).slice(2) }));
+      historial = data.historial || [];
+    } else {
+      state = {};
+      Object.keys(DEFAULT_DATA).forEach(cat => {
+        state[cat] = DEFAULT_DATA[cat].map(([name, qty]) => ({ name, qty, id: Math.random().toString(36).slice(2) }));
+      });
+      compras = DEFAULT_COMPRAS.map(name => ({ name, id: Math.random().toString(36).slice(2) }));
+      historial = [];
+      await saveAll();
+    }
+    document.getElementById('loading').style.display = 'none';
+    render();
+    renderLowStock();
+    renderHistorial();
+  } catch(e) {
+    document.getElementById('load-msg').textContent = 'Error. Comprueba conexión y recarga.';
+  }
+}
+
+window.reloadData = async function() {
+  showSync('saving', '↺ actualizando...');
+  try {
+    const snap = await getDoc(doc(db, "stock", "inventario"));
+    if (snap.exists()) {
+      const data = snap.data();
+      state = {};
+      Object.keys(data.categories).forEach(cat => {
+        state[cat] = data.categories[cat].map(i => ({ name: i.name, qty: i.qty, id: Math.random().toString(36).slice(2) }));
+      });
+      compras = (data.compras || []).map(name => ({ name, id: Math.random().toString(36).slice(2) }));
+      historial = data.historial || [];
+      render(); renderLowStock(); renderHistorial();
+      showSync('saved', '✓ actualizado');
+    }
+  } catch(e) { showSync('error'); }
 };
 
-window.setQty = function(cat, id, val) {
-  const item = state[cat].find(i => i.id === id);
-  if (item) { item.qty = Math.max(0, parseInt(val) || 0); scheduleSave(); }
+// PANELES
+window.togglePanel = function(which) {
+  const stockPanel = document.getElementById('panel-stock');
+  const histPanel = document.getElementById('panel-hist');
+  const btnStock = document.getElementById('btn-stock');
+  const btnHist = document.getElementById('btn-hist');
+
+  if (which === 'stock') {
+    const open = stockPanel.classList.toggle('open');
+    histPanel.classList.remove('open');
+    btnStock.className = open ? 'btn active' : 'btn';
+    btnHist.className = 'btn';
+  } else {
+    const open = histPanel.classList.toggle('open');
+    stockPanel.classList.remove('open');
+    btnHist.className = open ? 'btn active' : 'btn';
+    btnStock.className = 'btn';
+  }
+};
+
+function getLowStock() {
+  const low = [];
+  Object.keys(state).forEach(cat => {
+    state[cat].forEach(item => {
+      if (item.qty <= LOW_STOCK) low.push({ ...item, cat });
+    });
+  });
+  return low.sort((a, b) => a.qty - b.qty);
+}
+
+function renderLowStock() {
+  const low = getLowStock();
+  const body = document.getElementById('low-stock-body');
+  const btn = document.getElementById('btn-stock');
+  if (low.length > 0) {
+    btn.textContent = `⚠️ Stock (${low.length})`;
+    btn.className = 'btn active';
+  } else {
+    btn.textContent = '⚠️ Stock';
+    btn.className = 'btn';
+  }
+  if (low.length === 0) {
+    body.innerHTML = '<div class="panel-empty">✓ Todo el stock está bien</div>';
+    return;
+  }
+  body.innerHTML = low.map(i => `
+    <div class="alert-item">
+      <span class="alert-name">${i.name} <span style="font-size:0.62rem;color:var(--text-dim)">(${i.cat})</span></span>
+      <span class="alert-qty">${i.qty} ud${i.qty !== 1 ? 's' : ''}${i.qty === 0 ? ' ❌' : ''}</span>
+    </div>`).join('');
+}
+
+function renderHistorial() {
+  const body = document.getElementById('hist-body');
+  // Pendientes aún no confirmados
+  const pending = Object.values(pendingHist);
+  let html = '';
+
+  if (pending.length > 0) {
+    html += `<div class="hist-day">
+      <div class="hist-day-title">⏳ Pendiente de confirmar (en ${Math.round(HIST_DELAY/60000)} min)</div>
+      ${pending.map(p => {
+        const delta = p.to - p.from;
+        return `<div class="hist-entry">
+          <span class="hist-name">${p.name}</span>
+          <span class="hist-cat-tag" style="font-size:0.62rem;color:var(--text-dim);margin-right:4px">${p.cat}</span>
+          <span class="hist-delta ${delta < 0 ? 'out' : 'in'}">${delta > 0 ? '+' : ''}${delta}</span>
+          <span class="hist-pending">pendiente</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  if (historial.length === 0 && pending.length === 0) {
+    body.innerHTML = '<div class="hist-empty">Aún no hay movimientos registrados</div>';
+    return;
+  }
+
+  const diasSemana = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+  historial.forEach(day => {
+    const d = new Date(day.date + 'T12:00:00');
+    const label = day.date === todayStr() ? 'Hoy' : `${diasSemana[d.getDay()]} ${d.getDate()} ${meses[d.getMonth()]}`;
+    const entradas = day.entries.filter(e => e.delta > 0).reduce((s, e) => s + e.delta, 0);
+    const salidas = day.entries.filter(e => e.delta < 0).reduce((s, e) => s + Math.abs(e.delta), 0);
+    html += `<div class="hist-day">
+      <div class="hist-day-title">${label} — <span style="color:var(--green)">+${entradas} entradas</span> · <span style="color:var(--red)">${salidas} salidas</span></div>
+      ${day.entries.map(e => `
+        <div class="hist-entry">
+          <span class="hist-name">${e.name}</span>
+          <span style="font-size:0.62rem;color:var(--text-dim);margin-right:4px">${e.cat}</span>
+          <span class="hist-delta ${e.delta < 0 ? 'out' : 'in'}">${e.delta > 0 ? '+' : ''}${e.delta}</span>
+          <span class="hist-time">${e.from}→${e.to} · ${e.time}</span>
+        </div>`).join('')}
+    </div>`;
+  });
+
+  body.innerHTML = html;
+}
+
+// SEARCH
+window.handleSearch = function(val) {
+  const clear = document.getElementById('search-clear');
+  const results = document.getElementById('search-results');
+  const appDiv = document.getElementById('app');
+  if (!val.trim()) { clear.style.display='none'; results.className=''; results.innerHTML=''; appDiv.style.display=''; return; }
+  clear.style.display = 'block';
+  appDiv.style.display = 'none';
+  const q = val.toLowerCase();
+  let matches = [];
+  Object.keys(state).forEach(cat => { state[cat].forEach(item => { if (item.name.toLowerCase().includes(q)) matches.push({...item, cat}); }); });
+  if (matches.length === 0) { results.className='active'; results.innerHTML=`<div class="no-results">No se encontró "<b>${val}</b>"</div>`; return; }
+  results.className = 'active';
+  results.innerHTML = `<div style="padding:8px 16px 4px;font-size:0.68rem;color:var(--text-dim)">${matches.length} resultado${matches.length>1?'s':''}</div>
+    ${matches.map(item => `<div class="search-result-item" onclick="goToItem('${item.id}','${item.cat}')">
+      <span class="search-name">${item.name}</span>
+      <span class="search-cat-tag">${item.cat}</span>
+      <span style="font-weight:600;color:${item.qty<=LOW_STOCK?'var(--orange)':'var(--gold)'}">${item.qty}</span>
+    </div>`).join('')}`;
+};
+
+window.clearSearch = function() { document.getElementById('search').value=''; window.handleSearch(''); };
+
+window.goToItem = function(id, cat) {
+  clearSearch();
+  const catId = cat.replace(/[^a-zA-Z0-9]/g,'_');
+  document.getElementById(`sec-${catId}`)?.classList.remove('collapsed');
+  setTimeout(() => {
+    const row = document.getElementById(`item-${id}`);
+    if (row) { row.scrollIntoView({behavior:'smooth',block:'center'}); row.classList.add('highlight'); setTimeout(()=>row.classList.remove('highlight'),2000); }
+  }, 100);
+};
+
+window.changeQty = function(cat, id, delta) {
+  const item = state[cat]?.find(i => i.id === id);
+  if (!item) return;
+  const prevQty = item.qty;
+  item.qty = Math.max(0, prevQty + delta);
+  const display = document.querySelector(`#item-${id} .qty-display`);
+  if (display) { display.textContent = item.qty; display.className = `qty-display${item.qty<=LOW_STOCK?' low':''}`; }
+  const row = document.getElementById(`item-${id}`);
+  if (row) row.className = `item-row${item.qty===0?' zero':item.qty<=LOW_STOCK?' low':''}`;
+  renderLowStock();
+  registerChange(cat, item.name, prevQty, item.qty);
+  saveItemSafe(cat, id);
 };
 
 window.updateName = function(cat, id, val) {
-  const item = state[cat].find(i => i.id === id);
-  if (item) { item.name = val; scheduleSave(); }
+  const item = state[cat]?.find(i => i.id === id);
+  if (item) { item.name = val; saveAll(); }
 };
 
 window.deleteItem = function(cat, id) {
   state[cat] = state[cat].filter(i => i.id !== id);
   document.getElementById(`item-${id}`)?.remove();
-  scheduleSave();
+  renderLowStock(); saveAll();
 };
 
 window.addItem = function(cat) {
-  const nameEl = document.getElementById(`add-name-${CSS.escape(cat)}`);
-  const qtyEl = document.getElementById(`add-qty-${CSS.escape(cat)}`);
+  const catId = cat.replace(/[^a-zA-Z0-9]/g,'_');
+  const nameEl = document.getElementById(`add-name-${catId}`);
+  const qtyEl = document.getElementById(`add-qty-${catId}`);
   const name = nameEl?.value.trim();
   if (!name) return;
-  const qty = parseInt(qtyEl?.value) || 0;
-  state[cat].push({ name, qty, id: Math.random().toString(36) });
-  nameEl.value = ''; if (qtyEl) qtyEl.value = '';
-  render(); scheduleSave();
+  const qty = parseInt(qtyEl?.value)||0;
+  const newItem = {name,qty,id:Math.random().toString(36).slice(2)};
+  state[cat].push(newItem);
+  nameEl.value=''; if(qtyEl)qtyEl.value='';
+  const body = document.getElementById(`body-${catId}`);
+  if (body) { const div=document.createElement('div'); div.className=`item-row${qty===0?' zero':qty<=LOW_STOCK?' low':''}`; div.id=`item-${newItem.id}`; div.innerHTML=itemHTML(cat,newItem); body.appendChild(div); }
+  renderLowStock(); saveAll();
 };
 
-window.updateCompra = function(id, val) {
-  const item = compras.find(i => i.id === id);
-  if (item) { item.name = val; scheduleSave(); }
-};
-
-window.deleteCompra = function(id) {
-  compras = compras.filter(i => i.id !== id);
-  document.getElementById(`compra-${id}`)?.remove();
-  scheduleSave();
-};
-
+window.updateCompra = function(id,val) { const item=compras.find(i=>i.id===id); if(item){item.name=val;saveAll();} };
+window.deleteCompra = function(id) { compras=compras.filter(i=>i.id!==id); document.getElementById(`compra-${id}`)?.remove(); saveAll(); };
 window.addCompra = function() {
-  const el = document.getElementById('add-compra-name');
-  const name = el?.value.trim();
-  if (!name) return;
-  compras.push({ name, id: Math.random().toString(36) });
-  el.value = ''; render(); scheduleSave();
+  const el=document.getElementById('add-compra-name'); const name=el?.value.trim(); if(!name)return;
+  const newItem={name,id:Math.random().toString(36).slice(2)}; compras.push(newItem); el.value='';
+  const body=document.getElementById('compras-body');
+  if(body){const div=document.createElement('div');div.className='compra-item';div.id=`compra-${newItem.id}`;div.innerHTML=`<input class="compra-name" value="${name}" onchange="updateCompra('${newItem.id}',this.value)"/><span class="note-tag">pendiente</span><button class="del-btn" style="opacity:1" onclick="deleteCompra('${newItem.id}')">✕</button>`;body.appendChild(div);}
+  saveAll();
 };
 
-window.toggleSection = function(header) {
-  header.closest('section, .compras-section').classList.toggle('collapsed');
-};
-
-window.toggleAll = function(open) {
-  document.querySelectorAll('section, .compras-section').forEach(s => {
-    open ? s.classList.remove('collapsed') : s.classList.add('collapsed');
-  });
-};
+window.toggleSection = function(h) { h.closest('section,.compras-section').classList.toggle('collapsed'); };
+window.toggleAll = function(open) { document.querySelectorAll('section,.compras-section').forEach(s=>open?s.classList.remove('collapsed'):s.classList.add('collapsed')); };
 
 window.openCopy = function() {
-  const today = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  let lines = [`🍾 *GARRAFEIRA — STOCK ${today}*`, ''];
-  if (compras.length > 0) {
-    lines.push('🛒 *COMPRAS PENDIENTES*');
-    compras.forEach(c => lines.push(`  • ${c.name}`));
-    lines.push('');
-  }
-  Object.keys(state).forEach(cat => {
-    if (!state[cat].length) return;
-    lines.push(`*${cat}*`);
-    state[cat].forEach(item => lines.push(`  ${item.name} — ${item.qty == 0 ? '❌ 0' : item.qty}`));
-    lines.push('');
-  });
-  document.getElementById('copy-text').value = lines.join('\n').trim();
+  const today = new Date().toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric'});
+  let lines=[`🍾 *GARRAFEIRA — STOCK ${today}*`,``];
+  const low=getLowStock();
+  if(low.length>0){lines.push('⚠️ *POCO STOCK*');low.forEach(i=>lines.push(`  • ${i.name} — ${i.qty} uds`));lines.push('');}
+  if(compras.length>0){lines.push('🛒 *COMPRAS PENDIENTES*');compras.forEach(c=>lines.push(`  • ${c.name}`));lines.push('');}
+  Object.keys(state).forEach(cat=>{if(!state[cat].length)return;lines.push(`*${cat}*`);state[cat].forEach(item=>lines.push(`  ${item.name} — ${item.qty===0?'❌ 0':item.qty}`));lines.push('');});
+  document.getElementById('copy-text').value=lines.join('\n').trim();
   document.getElementById('modal').classList.add('open');
 };
+window.closeModal=function(){document.getElementById('modal').classList.remove('open');};
+window.copyText=function(){const ta=document.getElementById('copy-text');ta.select();navigator.clipboard.writeText(ta.value).then(()=>{const btn=document.querySelector('.modal .btn.primary');btn.textContent='✓ Copiado!';setTimeout(()=>btn.textContent='Copiar todo',2000);});};
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
 
-window.closeModal = function() { document.getElementById('modal').classList.remove('open'); };
-
-window.copyText = function() {
-  const ta = document.getElementById('copy-text');
-  ta.select();
-  navigator.clipboard.writeText(ta.value).then(() => {
-    const btn = document.querySelector('.modal .btn.primary');
-    btn.textContent = '✓ Copiado!';
-    setTimeout(() => btn.textContent = 'Copiar todo', 2000);
-  });
-};
-
-document.getElementById('modal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+function itemHTML(cat,item){
+  return `<input class="item-name" value="${item.name}" onchange="updateName('${cat}','${item.id}',this.value)"/>
+    <div class="qty-controls">
+      <button class="qty-btn" onclick="changeQty('${cat}','${item.id}',-1)">−</button>
+      <span class="qty-display${item.qty<=LOW_STOCK?' low':''}">${item.qty}</span>
+      <button class="qty-btn" onclick="changeQty('${cat}','${item.id}',1)">+</button>
+    </div>
+    <button class="del-btn" onclick="deleteItem('${cat}','${item.id}')">✕</button>`;
+}
 
 function render() {
-  const app = document.getElementById('app');
-  app.innerHTML = '';
+  const appDiv=document.getElementById('app'); appDiv.innerHTML='';
+  const cs=document.createElement('div'); cs.className='compras-section';
+  cs.innerHTML=`<div class="section-header" onclick="toggleSection(this)"><h2>🛒 COMPRAS PENDIENTES</h2><div class="sec-meta"><span class="sec-count">${compras.length}</span><span class="chevron">▼</span></div></div>
+    <div class="section-body" id="compras-body">${compras.map(item=>`<div class="compra-item" id="compra-${item.id}"><input class="compra-name" value="${item.name}" onchange="updateCompra('${item.id}',this.value)"/><span class="note-tag">pendiente</span><button class="del-btn" style="opacity:1" onclick="deleteCompra('${item.id}')">✕</button></div>`).join('')}</div>
+    <div class="add-row"><input class="add-name" id="add-compra-name" placeholder="+ Añadir a la lista..."/><button class="add-confirm" onclick="addCompra()">+ Add</button></div>`;
+  appDiv.appendChild(cs);
 
-  const cs = document.createElement('div');
-  cs.className = 'compras-section';
-  cs.innerHTML = `
-    <div class="section-header" onclick="toggleSection(this)">
-      <h2>🛒 COMPRAS PENDIENTES</h2>
-      <span class="chevron">▼</span>
-    </div>
-    <div class="section-body">
-      ${compras.map(item => `
-        <div class="compra-item" id="compra-${item.id}">
-          <input class="compra-name" value="${item.name}" onchange="updateCompra('${item.id}', this.value)" />
-          <span class="note-tag">pendiente</span>
-          <button class="del-btn" onclick="deleteCompra('${item.id}')">✕</button>
-        </div>`).join('')}
-    </div>
-    <div class="add-row">
-      <input class="add-name" id="add-compra-name" placeholder="+ Añadir producto..." />
-      <button class="add-confirm" onclick="addCompra()">+ Add</button>
-    </div>`;
-  app.appendChild(cs);
-
-  Object.keys(state).forEach(cat => {
-    const sec = document.createElement('section');
-    const catId = cat.replace(/[^a-zA-Z0-9]/g, '_');
-    sec.innerHTML = `
-      <div class="section-header" onclick="toggleSection(this)">
-        <h2>${cat}</h2>
-        <span class="chevron">▼</span>
-      </div>
-      <div class="section-body">
-        ${state[cat].map(item => `
-          <div class="item-row${item.qty == 0 ? ' zero' : ''}" id="item-${item.id}">
-            <input class="item-name" value="${item.name}" onchange="updateName('${cat}', '${item.id}', this.value)" />
-            <div class="qty-controls">
-              <button class="qty-btn" onclick="changeQty('${cat}', '${item.id}', -1)">−</button>
-              <input class="qty-input" type="number" value="${item.qty}" min="0" onchange="setQty('${cat}', '${item.id}', this.value)" />
-              <button class="qty-btn" onclick="changeQty('${cat}', '${item.id}', 1)">+</button>
-            </div>
-            <button class="del-btn" onclick="deleteItem('${cat}', '${item.id}')">✕</button>
-          </div>`).join('')}
-      </div>
-      <div class="add-row">
-        <input class="add-name" id="add-name-${catId}" placeholder="+ Añadir producto..." />
-        <input class="add-qty" id="add-qty-${catId}" type="number" min="0" placeholder="0" />
-        <button class="add-confirm" onclick="addItem('${cat}')">+ Add</button>
-      </div>`;
-    app.appendChild(sec);
+  Object.keys(state).forEach(cat=>{
+    const catId=cat.replace(/[^a-zA-Z0-9]/g,'_');
+    const sec=document.createElement('section'); sec.id=`sec-${catId}`;
+    sec.innerHTML=`<div class="section-header" onclick="toggleSection(this)"><h2>${cat}</h2><div class="sec-meta"><span class="sec-count">${state[cat].length} prod.</span><span class="chevron">▼</span></div></div>
+      <div class="section-body" id="body-${catId}">${state[cat].map(item=>`<div class="item-row${item.qty===0?' zero':item.qty<=LOW_STOCK?' low':''}" id="item-${item.id}">${itemHTML(cat,item)}</div>`).join('')}</div>
+      <div class="add-row"><input class="add-name" id="add-name-${catId}" placeholder="+ Añadir producto..."/><input class="add-qty" id="add-qty-${catId}" type="number" min="0" placeholder="0"/><button class="add-confirm" onclick="addItem('${cat}')">+ Add</button></div>`;
+    appDiv.appendChild(sec);
   });
 }
+
+loadOnce();
 </script>
 </body>
 </html>
