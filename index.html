@@ -30,7 +30,12 @@
   .app-header { background: #120f0d; border-bottom: 1px solid var(--gold-dim); padding: 16px; position: sticky; top: 0; z-index: 40; }
   .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
   .header-top h1 { font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--gold); }
+  .header-right { display: flex; align-items: center; gap: 8px; }
   .header-date { font-size: 0.7rem; color: var(--text-dim); letter-spacing: 0.1em; }
+
+  /* LANG TOGGLE */
+  .lang-btn { background: var(--surface); border: 1px solid var(--border); color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.72rem; padding: 3px 8px; border-radius: 20px; cursor: pointer; touch-action: manipulation; transition: all 0.2s; }
+  .lang-btn:active { border-color: var(--gold); color: var(--gold); }
 
   #sync { font-size: 0.65rem; color: var(--text-dim); background: var(--surface); border: 1px solid var(--border); padding: 3px 8px; border-radius: 20px; transition: all 0.3s; white-space: nowrap; }
   #sync.saving { color: var(--gold); border-color: var(--gold-dim); }
@@ -52,7 +57,6 @@
 
   .content { padding: 16px; }
 
-  /* PANEL POCO STOCK */
   .panel { display: none; background: #1a0f0a; border: 1px solid #5a2d1a; border-radius: 6px; margin-bottom: 16px; overflow: hidden; }
   .panel.open { display: block; }
   .panel-header { padding: 10px 16px; background: #221208; border-bottom: 1px solid #5a2d1a; font-family: 'Playfair Display', serif; font-size: 0.9rem; color: var(--orange); }
@@ -62,7 +66,6 @@
   .alert-qty { color: var(--orange); font-weight: 600; }
   .panel-empty { padding: 12px 16px; font-size: 0.75rem; color: var(--text-dim); text-align: center; }
 
-  /* PANEL HISTORIAL */
   .hist-panel { display: none; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 16px; overflow: hidden; max-height: 420px; overflow-y: auto; }
   .hist-panel.open { display: block; }
   .hist-panel-header { padding: 10px 16px; background: #1a1814; border-bottom: 1px solid var(--border); font-family: 'Playfair Display', serif; font-size: 0.9rem; color: var(--gold); position: sticky; top: 0; }
@@ -143,57 +146,54 @@
 <div id="loading">
   <div class="spinner"></div>
   <h2>GARRAFEIRA</h2>
-  <p id="load-msg">Cargando stock...</p>
+  <p id="load-msg">Cargando...</p>
 </div>
 
 <div class="app-header">
   <div class="header-top">
     <h1>🍾 GARRAFEIRA</h1>
-    <div style="display:flex;align-items:center;gap:8px;">
+    <div class="header-right">
       <span class="header-date" id="fecha"></span>
+      <button class="lang-btn" id="lang-btn" onclick="toggleLang()">🇵🇹 PT</button>
       <span id="sync">● sync</span>
     </div>
   </div>
   <div class="search-wrap">
     <span class="search-icon">🔍</span>
-    <input class="search-input" id="search" placeholder="Buscar producto..." oninput="handleSearch(this.value)" />
+    <input class="search-input" id="search" oninput="handleSearch(this.value)" />
     <button class="search-clear" id="search-clear" onclick="clearSearch()">✕</button>
   </div>
 </div>
 
 <div class="toolbar">
-  <button class="btn primary" onclick="openCopy()">📋 WhatsApp</button>
+  <button class="btn primary" id="btn-whatsapp" onclick="openCopy()">📋 WhatsApp</button>
   <button class="btn" id="btn-stock" onclick="togglePanel('stock')">⚠️ Stock</button>
-  <button class="btn" id="btn-hist" onclick="togglePanel('hist')">📊 Historial</button>
-  <button class="btn" onclick="toggleAll(true)">↕ Exp.</button>
-  <button class="btn" onclick="toggleAll(false)">↕ Col.</button>
+  <button class="btn" id="btn-hist" onclick="togglePanel('hist')">📊 <span id="lbl-hist">Historial</span></button>
+  <button class="btn" id="btn-exp" onclick="toggleAll(true)">↕ <span id="lbl-exp">Exp.</span></button>
+  <button class="btn" id="btn-col" onclick="toggleAll(false)">↕ <span id="lbl-col">Col.</span></button>
   <button class="btn" onclick="reloadData()" style="margin-left:auto">↺</button>
 </div>
 
 <div class="content">
-  <!-- Panel poco stock -->
   <div class="panel" id="panel-stock">
-    <div class="panel-header">⚠️ POCO STOCK — 2 unidades o menos</div>
+    <div class="panel-header" id="lbl-low-header">⚠️ POCO STOCK — 2 unidades o menos</div>
     <div id="low-stock-body"></div>
   </div>
-
-  <!-- Panel historial -->
   <div class="hist-panel" id="panel-hist">
-    <div class="hist-panel-header">📊 HISTORIAL DE MOVIMIENTOS</div>
+    <div class="hist-panel-header" id="lbl-hist-header">📊 HISTORIAL DE MOVIMIENTOS</div>
     <div id="hist-body"></div>
   </div>
-
   <div id="search-results"></div>
   <div id="app"></div>
 </div>
 
 <div class="modal-overlay" id="modal">
   <div class="modal">
-    <h3>📱 Copiar para WhatsApp</h3>
+    <h3 id="lbl-modal-title">📱 Copiar para WhatsApp</h3>
     <textarea id="copy-text" readonly></textarea>
     <div class="modal-actions">
-      <button class="btn" onclick="closeModal()">Cerrar</button>
-      <button class="btn primary" onclick="copyText()">Copiar todo</button>
+      <button class="btn" onclick="closeModal()" id="lbl-close">Cerrar</button>
+      <button class="btn primary" onclick="copyText()" id="lbl-copy">Copiar todo</button>
     </div>
   </div>
 </div>
@@ -214,7 +214,121 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const LOW_STOCK = 2;
-const HIST_DELAY = 20 * 60 * 1000; // 20 minutos
+const HIST_DELAY = 20 * 60 * 1000;
+
+// TRADUCCIONES
+const T = {
+  es: {
+    loading: 'Cargando stock...',
+    search: 'Buscar producto...',
+    whatsapp: '📋 WhatsApp',
+    stock: '⚠️ Stock',
+    historial: 'Historial',
+    exp: 'Exp.',
+    col: 'Col.',
+    lowHeader: '⚠️ POCO STOCK — 2 unidades o menos',
+    histHeader: '📊 HISTORIAL DE MOVIMIENTOS',
+    modalTitle: '📱 Copiar para WhatsApp',
+    close: 'Cerrar',
+    copyAll: 'Copiar todo',
+    copied: '✓ Copiado!',
+    stockOk: '✓ Todo el stock está bien',
+    pending: 'Pendiente de confirmar',
+    noResults: 'No se encontró',
+    noHist: 'Aún no hay movimientos registrados',
+    results: 'resultado',
+    results2: 'resultados',
+    addProduct: '+ Añadir producto...',
+    addList: '+ Añadir a la lista...',
+    add: '+ Add',
+    pendingTag: 'pendiente',
+    purchases: '🛒 COMPRAS PENDIENTES',
+    prod: 'prod.',
+    entradas: 'entradas',
+    salidas: 'salidas',
+    hoy: 'Hoy',
+    updating: '↺ actualizando...',
+    updated: '✓ actualizado',
+    dias: ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'],
+    meses: ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'],
+    diasShort: ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'],
+    mesesShort: ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'],
+    langBtn: '🇵🇹 PT',
+  },
+  pt: {
+    loading: 'A carregar stock...',
+    search: 'Pesquisar produto...',
+    whatsapp: '📋 WhatsApp',
+    stock: '⚠️ Stock',
+    historial: 'Histórico',
+    exp: 'Exp.',
+    col: 'Col.',
+    lowHeader: '⚠️ STOCK BAIXO — 2 unidades ou menos',
+    histHeader: '📊 HISTÓRICO DE MOVIMENTOS',
+    modalTitle: '📱 Copiar para WhatsApp',
+    close: 'Fechar',
+    copyAll: 'Copiar tudo',
+    copied: '✓ Copiado!',
+    stockOk: '✓ Todo o stock está bem',
+    pending: 'A aguardar confirmação',
+    noResults: 'Não encontrado',
+    noHist: 'Ainda não há movimentos registados',
+    results: 'resultado',
+    results2: 'resultados',
+    addProduct: '+ Adicionar produto...',
+    addList: '+ Adicionar à lista...',
+    add: '+ Add',
+    pendingTag: 'pendente',
+    purchases: '🛒 COMPRAS PENDENTES',
+    prod: 'prod.',
+    entradas: 'entradas',
+    salidas: 'saídas',
+    hoy: 'Hoje',
+    updating: '↺ a atualizar...',
+    updated: '✓ atualizado',
+    dias: ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'],
+    meses: ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
+    diasShort: ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'],
+    mesesShort: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'],
+    langBtn: '🇪🇸 ES',
+  }
+};
+
+let lang = localStorage.getItem('garrLang') || 'es';
+
+function t(key) { return T[lang][key] || T['es'][key]; }
+
+function applyLang() {
+  document.getElementById('load-msg').textContent = t('loading');
+  document.getElementById('search').placeholder = t('search');
+  document.getElementById('btn-whatsapp').textContent = t('whatsapp');
+  document.getElementById('btn-stock').innerHTML = `${t('stock')}`;
+  document.getElementById('lbl-hist').textContent = t('historial');
+  document.getElementById('lbl-exp').textContent = t('exp');
+  document.getElementById('lbl-col').textContent = t('col');
+  document.getElementById('lbl-low-header').textContent = t('lowHeader');
+  document.getElementById('lbl-hist-header').textContent = t('histHeader');
+  document.getElementById('lbl-modal-title').textContent = t('modalTitle');
+  document.getElementById('lbl-close').textContent = t('close');
+  document.getElementById('lbl-copy').textContent = t('copyAll');
+  document.getElementById('lang-btn').textContent = t('langBtn');
+  updateDate();
+  renderLowStock();
+  renderHistorial();
+  // Re-render add placeholders
+  document.querySelectorAll('.add-name[data-type="product"]').forEach(el => el.placeholder = t('addProduct'));
+  document.querySelectorAll('.add-name[data-type="list"]').forEach(el => el.placeholder = t('addList'));
+  document.querySelectorAll('.add-confirm').forEach(el => el.textContent = t('add'));
+  document.querySelectorAll('.note-tag').forEach(el => el.textContent = t('pendingTag'));
+  const csHeader = document.querySelector('.compras-section .section-header h2');
+  if (csHeader) csHeader.textContent = t('purchases');
+}
+
+window.toggleLang = function() {
+  lang = lang === 'es' ? 'pt' : 'es';
+  localStorage.setItem('garrLang', lang);
+  applyLang();
+};
 
 const DEFAULT_DATA = {
   LICORES: [["Mariquinhas",1],["Kahlúa",2],["Macieira Cream",4],["Macieira Royal",2],["Tía María",2],["Advocaat",3],["Safari",3],["Disaronno",2],["Beirão",11],["Jägermeister",3],["Frangelico",2],["Drambuie",6],["St. Germain",3],["Amarguinha",3],["Baileys",4],["Malibu",2],["Triple Sec",9],["Amarula",1]],
@@ -233,16 +347,13 @@ const DEFAULT_COMPRAS = ["Limas","Limones","Film transparente"];
 
 let state = {};
 let compras = [];
-// Historial: { date: "2026-06-01", entries: [{name, cat, delta, from, to, time, pending, timer}] }
 let historial = [];
-// Cambios pendientes antes de guardar en historial (20 min)
-let pendingHist = {}; // key: `${cat}::${name}` => {name, cat, from, to, time, timer}
+let pendingHist = {};
 
 function updateDate() {
   const now = new Date();
-  const dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  document.getElementById('fecha').textContent = `${dias[now.getDay()]} ${now.getDate()} ${meses[now.getMonth()]}`;
+  const d = T[lang];
+  document.getElementById('fecha').textContent = `${d.dias[now.getDay()]} ${now.getDate()} ${d.meses[now.getMonth()]}`;
 }
 updateDate();
 setInterval(updateDate, 60000);
@@ -251,7 +362,6 @@ function todayStr() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 }
-
 function timeStr() {
   const now = new Date();
   return `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
@@ -259,7 +369,7 @@ function timeStr() {
 
 function showSync(status, msg) {
   const el = document.getElementById('sync');
-  const msgs = { saving: '↑ guardando...', saved: '✓ guardado', error: '⚠ error' };
+  const msgs = { saving: '↑ ...', saved: '✓', error: '⚠' };
   el.textContent = msg || msgs[status] || '● sync';
   el.className = status;
   if (status === 'saved') setTimeout(() => { el.textContent = '● sync'; el.className = ''; }, 2000);
@@ -282,59 +392,40 @@ async function saveItemSafe(cat, id) {
       transaction.set(ref, data);
     });
     showSync('saved');
-  } catch(e) {
-    showSync('error');
-    setTimeout(() => saveItemSafe(cat, id), 3000);
-  }
+  } catch(e) { showSync('error'); setTimeout(() => saveItemSafe(cat, id), 3000); }
 }
 
 async function saveAll() {
   showSync('saving');
   try {
     const saveState = {};
-    Object.keys(state).forEach(cat => {
-      saveState[cat] = state[cat].map(i => ({ name: i.name, qty: i.qty }));
-    });
+    Object.keys(state).forEach(cat => { saveState[cat] = state[cat].map(i => ({ name: i.name, qty: i.qty })); });
     await setDoc(doc(db, "stock", "inventario"), {
-      categories: saveState,
-      compras: compras.map(c => c.name),
-      historial: historial,
-      updatedAt: new Date().toISOString()
+      categories: saveState, compras: compras.map(c => c.name),
+      historial, updatedAt: new Date().toISOString()
     });
     showSync('saved');
-  } catch(e) {
-    showSync('error');
-    setTimeout(saveAll, 3000);
-  }
+  } catch(e) { showSync('error'); setTimeout(saveAll, 3000); }
 }
 
 async function saveHistorial() {
   try {
     const ref = doc(db, "stock", "inventario");
-    await runTransaction(db, async (transaction) => {
-      const snap = await transaction.get(ref);
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(ref);
       let data = snap.exists() ? snap.data() : {};
       data.historial = historial;
       data.updatedAt = new Date().toISOString();
-      transaction.set(ref, data);
+      tx.set(ref, data);
     });
-  } catch(e) { console.error('Error guardando historial', e); }
+  } catch(e) { console.error(e); }
 }
 
-// Registra un cambio en historial después de 20 minutos
 function registerChange(cat, name, fromQty, toQty) {
   const key = `${cat}::${name}`;
-  if (pendingHist[key]) {
-    clearTimeout(pendingHist[key].timer);
-    // Actualiza el "to" pero mantiene el "from" original
-    pendingHist[key].to = toQty;
-    pendingHist[key].time = timeStr();
-  } else {
-    pendingHist[key] = { name, cat, from: fromQty, to: toQty, time: timeStr() };
-  }
-  pendingHist[key].timer = setTimeout(() => {
-    commitToHistorial(key);
-  }, HIST_DELAY);
+  if (pendingHist[key]) { clearTimeout(pendingHist[key].timer); pendingHist[key].to = toQty; pendingHist[key].time = timeStr(); }
+  else { pendingHist[key] = { name, cat, from: fromQty, to: toQty, time: timeStr() }; }
+  pendingHist[key].timer = setTimeout(() => commitToHistorial(key), HIST_DELAY);
   renderHistorial();
 }
 
@@ -357,16 +448,12 @@ async function loadOnce() {
     const data = snap.exists() ? snap.data() : null;
     if (data && data.categories) {
       state = {};
-      Object.keys(data.categories).forEach(cat => {
-        state[cat] = data.categories[cat].map(i => ({ name: i.name, qty: i.qty, id: Math.random().toString(36).slice(2) }));
-      });
+      Object.keys(data.categories).forEach(cat => { state[cat] = data.categories[cat].map(i => ({ name: i.name, qty: i.qty, id: Math.random().toString(36).slice(2) })); });
       compras = (data.compras || []).map(name => ({ name, id: Math.random().toString(36).slice(2) }));
       historial = data.historial || [];
     } else {
       state = {};
-      Object.keys(DEFAULT_DATA).forEach(cat => {
-        state[cat] = DEFAULT_DATA[cat].map(([name, qty]) => ({ name, qty, id: Math.random().toString(36).slice(2) }));
-      });
+      Object.keys(DEFAULT_DATA).forEach(cat => { state[cat] = DEFAULT_DATA[cat].map(([name, qty]) => ({ name, qty, id: Math.random().toString(36).slice(2) })); });
       compras = DEFAULT_COMPRAS.map(name => ({ name, id: Math.random().toString(36).slice(2) }));
       historial = [];
       await saveAll();
@@ -375,228 +462,147 @@ async function loadOnce() {
     render();
     renderLowStock();
     renderHistorial();
-  } catch(e) {
-    document.getElementById('load-msg').textContent = 'Error. Comprueba conexión y recarga.';
-  }
+    applyLang();
+  } catch(e) { document.getElementById('load-msg').textContent = 'Error. Recarga la página.'; }
 }
 
 window.reloadData = async function() {
-  showSync('saving', '↺ actualizando...');
+  showSync('saving', t('updating'));
   try {
     const snap = await getDoc(doc(db, "stock", "inventario"));
     if (snap.exists()) {
       const data = snap.data();
       state = {};
-      Object.keys(data.categories).forEach(cat => {
-        state[cat] = data.categories[cat].map(i => ({ name: i.name, qty: i.qty, id: Math.random().toString(36).slice(2) }));
-      });
+      Object.keys(data.categories).forEach(cat => { state[cat] = data.categories[cat].map(i => ({ name: i.name, qty: i.qty, id: Math.random().toString(36).slice(2) })); });
       compras = (data.compras || []).map(name => ({ name, id: Math.random().toString(36).slice(2) }));
       historial = data.historial || [];
-      render(); renderLowStock(); renderHistorial();
-      showSync('saved', '✓ actualizado');
+      render(); renderLowStock(); renderHistorial(); applyLang();
+      showSync('saved', t('updated'));
     }
   } catch(e) { showSync('error'); }
 };
 
-// PANELES
 window.togglePanel = function(which) {
-  const stockPanel = document.getElementById('panel-stock');
-  const histPanel = document.getElementById('panel-hist');
-  const btnStock = document.getElementById('btn-stock');
-  const btnHist = document.getElementById('btn-hist');
-
-  if (which === 'stock') {
-    const open = stockPanel.classList.toggle('open');
-    histPanel.classList.remove('open');
-    btnStock.className = open ? 'btn active' : 'btn';
-    btnHist.className = 'btn';
-  } else {
-    const open = histPanel.classList.toggle('open');
-    stockPanel.classList.remove('open');
-    btnHist.className = open ? 'btn active' : 'btn';
-    btnStock.className = 'btn';
-  }
+  const sp = document.getElementById('panel-stock');
+  const hp = document.getElementById('panel-hist');
+  const bs = document.getElementById('btn-stock');
+  const bh = document.getElementById('btn-hist');
+  if (which === 'stock') { const o=sp.classList.toggle('open'); hp.classList.remove('open'); bs.className=o?'btn active':'btn'; bh.className='btn'; }
+  else { const o=hp.classList.toggle('open'); sp.classList.remove('open'); bh.className=o?'btn active':'btn'; bs.className='btn'; }
 };
 
 function getLowStock() {
   const low = [];
-  Object.keys(state).forEach(cat => {
-    state[cat].forEach(item => {
-      if (item.qty <= LOW_STOCK) low.push({ ...item, cat });
-    });
-  });
-  return low.sort((a, b) => a.qty - b.qty);
+  Object.keys(state).forEach(cat => { state[cat].forEach(item => { if (item.qty <= LOW_STOCK) low.push({...item, cat}); }); });
+  return low.sort((a,b) => a.qty - b.qty);
 }
 
 function renderLowStock() {
   const low = getLowStock();
   const body = document.getElementById('low-stock-body');
   const btn = document.getElementById('btn-stock');
-  if (low.length > 0) {
-    btn.textContent = `⚠️ Stock (${low.length})`;
-    btn.className = 'btn active';
-  } else {
-    btn.textContent = '⚠️ Stock';
-    btn.className = 'btn';
-  }
-  if (low.length === 0) {
-    body.innerHTML = '<div class="panel-empty">✓ Todo el stock está bien</div>';
-    return;
-  }
-  body.innerHTML = low.map(i => `
-    <div class="alert-item">
-      <span class="alert-name">${i.name} <span style="font-size:0.62rem;color:var(--text-dim)">(${i.cat})</span></span>
-      <span class="alert-qty">${i.qty} ud${i.qty !== 1 ? 's' : ''}${i.qty === 0 ? ' ❌' : ''}</span>
-    </div>`).join('');
+  btn.textContent = low.length > 0 ? `⚠️ Stock (${low.length})` : t('stock');
+  btn.className = low.length > 0 ? 'btn active' : 'btn';
+  document.getElementById('lbl-low-header').textContent = t('lowHeader');
+  body.innerHTML = low.length === 0
+    ? `<div class="panel-empty">${t('stockOk')}</div>`
+    : low.map(i => `<div class="alert-item"><span class="alert-name">${i.name} <span style="font-size:0.62rem;color:var(--text-dim)">(${i.cat})</span></span><span class="alert-qty">${i.qty} ud${i.qty!==1?'s':''}${i.qty===0?' ❌':''}</span></div>`).join('');
 }
 
 function renderHistorial() {
   const body = document.getElementById('hist-body');
-  // Pendientes aún no confirmados
+  document.getElementById('lbl-hist-header').textContent = t('histHeader');
   const pending = Object.values(pendingHist);
   let html = '';
-
   if (pending.length > 0) {
-    html += `<div class="hist-day">
-      <div class="hist-day-title">⏳ Pendiente de confirmar (en ${Math.round(HIST_DELAY/60000)} min)</div>
-      ${pending.map(p => {
-        const delta = p.to - p.from;
-        return `<div class="hist-entry">
-          <span class="hist-name">${p.name}</span>
-          <span class="hist-cat-tag" style="font-size:0.62rem;color:var(--text-dim);margin-right:4px">${p.cat}</span>
-          <span class="hist-delta ${delta < 0 ? 'out' : 'in'}">${delta > 0 ? '+' : ''}${delta}</span>
-          <span class="hist-pending">pendiente</span>
-        </div>`;
-      }).join('')}
-    </div>`;
+    html += `<div class="hist-day"><div class="hist-day-title">⏳ ${t('pending')} (20 min)</div>
+      ${pending.map(p => { const d=p.to-p.from; return `<div class="hist-entry"><span class="hist-name">${p.name}</span><span style="font-size:0.62rem;color:var(--text-dim);margin-right:4px">${p.cat}</span><span class="hist-delta ${d<0?'out':'in'}">${d>0?'+':''}${d}</span><span class="hist-pending">${t('pendingTag')}</span></div>`; }).join('')}</div>`;
   }
-
-  if (historial.length === 0 && pending.length === 0) {
-    body.innerHTML = '<div class="hist-empty">Aún no hay movimientos registrados</div>';
-    return;
-  }
-
-  const diasSemana = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-  const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-
+  if (historial.length === 0 && pending.length === 0) { body.innerHTML = `<div class="hist-empty">${t('noHist')}</div>`; return; }
+  const ds = T[lang].diasShort;
+  const ms = T[lang].mesesShort;
   historial.forEach(day => {
     const d = new Date(day.date + 'T12:00:00');
-    const label = day.date === todayStr() ? 'Hoy' : `${diasSemana[d.getDay()]} ${d.getDate()} ${meses[d.getMonth()]}`;
-    const entradas = day.entries.filter(e => e.delta > 0).reduce((s, e) => s + e.delta, 0);
-    const salidas = day.entries.filter(e => e.delta < 0).reduce((s, e) => s + Math.abs(e.delta), 0);
-    html += `<div class="hist-day">
-      <div class="hist-day-title">${label} — <span style="color:var(--green)">+${entradas} entradas</span> · <span style="color:var(--red)">${salidas} salidas</span></div>
-      ${day.entries.map(e => `
-        <div class="hist-entry">
-          <span class="hist-name">${e.name}</span>
-          <span style="font-size:0.62rem;color:var(--text-dim);margin-right:4px">${e.cat}</span>
-          <span class="hist-delta ${e.delta < 0 ? 'out' : 'in'}">${e.delta > 0 ? '+' : ''}${e.delta}</span>
-          <span class="hist-time">${e.from}→${e.to} · ${e.time}</span>
-        </div>`).join('')}
-    </div>`;
+    const label = day.date === todayStr() ? t('hoy') : `${ds[d.getDay()]} ${d.getDate()} ${ms[d.getMonth()]}`;
+    const ent = day.entries.filter(e=>e.delta>0).reduce((s,e)=>s+e.delta,0);
+    const sal = day.entries.filter(e=>e.delta<0).reduce((s,e)=>s+Math.abs(e.delta),0);
+    html += `<div class="hist-day"><div class="hist-day-title">${label} — <span style="color:var(--green)">+${ent} ${t('entradas')}</span> · <span style="color:var(--red)">${sal} ${t('salidas')}</span></div>
+      ${day.entries.map(e=>`<div class="hist-entry"><span class="hist-name">${e.name}</span><span style="font-size:0.62rem;color:var(--text-dim);margin-right:4px">${e.cat}</span><span class="hist-delta ${e.delta<0?'out':'in'}">${e.delta>0?'+':''}${e.delta}</span><span class="hist-time">${e.from}→${e.to} · ${e.time}</span></div>`).join('')}</div>`;
   });
-
   body.innerHTML = html;
 }
 
-// SEARCH
 window.handleSearch = function(val) {
-  const clear = document.getElementById('search-clear');
-  const results = document.getElementById('search-results');
-  const appDiv = document.getElementById('app');
+  const clear=document.getElementById('search-clear');
+  const results=document.getElementById('search-results');
+  const appDiv=document.getElementById('app');
   if (!val.trim()) { clear.style.display='none'; results.className=''; results.innerHTML=''; appDiv.style.display=''; return; }
-  clear.style.display = 'block';
-  appDiv.style.display = 'none';
-  const q = val.toLowerCase();
-  let matches = [];
-  Object.keys(state).forEach(cat => { state[cat].forEach(item => { if (item.name.toLowerCase().includes(q)) matches.push({...item, cat}); }); });
-  if (matches.length === 0) { results.className='active'; results.innerHTML=`<div class="no-results">No se encontró "<b>${val}</b>"</div>`; return; }
-  results.className = 'active';
-  results.innerHTML = `<div style="padding:8px 16px 4px;font-size:0.68rem;color:var(--text-dim)">${matches.length} resultado${matches.length>1?'s':''}</div>
-    ${matches.map(item => `<div class="search-result-item" onclick="goToItem('${item.id}','${item.cat}')">
-      <span class="search-name">${item.name}</span>
-      <span class="search-cat-tag">${item.cat}</span>
-      <span style="font-weight:600;color:${item.qty<=LOW_STOCK?'var(--orange)':'var(--gold)'}">${item.qty}</span>
-    </div>`).join('')}`;
+  clear.style.display='block'; appDiv.style.display='none';
+  const q=val.toLowerCase();
+  let matches=[];
+  Object.keys(state).forEach(cat=>{ state[cat].forEach(item=>{ if(item.name.toLowerCase().includes(q)) matches.push({...item,cat}); }); });
+  if (matches.length===0) { results.className='active'; results.innerHTML=`<div class="no-results">${t('noResults')} "<b>${val}</b>"</div>`; return; }
+  results.className='active';
+  results.innerHTML=`<div style="padding:8px 16px 4px;font-size:0.68rem;color:var(--text-dim)">${matches.length} ${matches.length>1?t('results2'):t('results')}</div>
+    ${matches.map(item=>`<div class="search-result-item" onclick="goToItem('${item.id}','${item.cat}')"><span class="search-name">${item.name}</span><span class="search-cat-tag">${item.cat}</span><span style="font-weight:600;color:${item.qty<=LOW_STOCK?'var(--orange)':'var(--gold)'}">${item.qty}</span></div>`).join('')}`;
 };
 
-window.clearSearch = function() { document.getElementById('search').value=''; window.handleSearch(''); };
+window.clearSearch=function(){document.getElementById('search').value='';window.handleSearch('');};
+window.goToItem=function(id,cat){clearSearch();const catId=cat.replace(/[^a-zA-Z0-9]/g,'_');document.getElementById(`sec-${catId}`)?.classList.remove('collapsed');setTimeout(()=>{const row=document.getElementById(`item-${id}`);if(row){row.scrollIntoView({behavior:'smooth',block:'center'});row.classList.add('highlight');setTimeout(()=>row.classList.remove('highlight'),2000);}},100);};
 
-window.goToItem = function(id, cat) {
-  clearSearch();
-  const catId = cat.replace(/[^a-zA-Z0-9]/g,'_');
-  document.getElementById(`sec-${catId}`)?.classList.remove('collapsed');
-  setTimeout(() => {
-    const row = document.getElementById(`item-${id}`);
-    if (row) { row.scrollIntoView({behavior:'smooth',block:'center'}); row.classList.add('highlight'); setTimeout(()=>row.classList.remove('highlight'),2000); }
-  }, 100);
+window.changeQty=function(cat,id,delta){
+  const item=state[cat]?.find(i=>i.id===id); if(!item)return;
+  const prev=item.qty; item.qty=Math.max(0,prev+delta);
+  const display=document.querySelector(`#item-${id} .qty-display`);
+  if(display){display.textContent=item.qty;display.className=`qty-display${item.qty<=LOW_STOCK?' low':''}`;}
+  const row=document.getElementById(`item-${id}`);
+  if(row)row.className=`item-row${item.qty===0?' zero':item.qty<=LOW_STOCK?' low':''}`;
+  renderLowStock(); registerChange(cat,item.name,prev,item.qty); saveItemSafe(cat,id);
 };
 
-window.changeQty = function(cat, id, delta) {
-  const item = state[cat]?.find(i => i.id === id);
-  if (!item) return;
-  const prevQty = item.qty;
-  item.qty = Math.max(0, prevQty + delta);
-  const display = document.querySelector(`#item-${id} .qty-display`);
-  if (display) { display.textContent = item.qty; display.className = `qty-display${item.qty<=LOW_STOCK?' low':''}`; }
-  const row = document.getElementById(`item-${id}`);
-  if (row) row.className = `item-row${item.qty===0?' zero':item.qty<=LOW_STOCK?' low':''}`;
-  renderLowStock();
-  registerChange(cat, item.name, prevQty, item.qty);
-  saveItemSafe(cat, id);
+window.updateName=function(cat,id,val){const item=state[cat]?.find(i=>i.id===id);if(item){item.name=val;saveAll();}};
+window.deleteItem=function(cat,id){state[cat]=state[cat].filter(i=>i.id!==id);document.getElementById(`item-${id}`)?.remove();renderLowStock();saveAll();};
+window.addItem=function(cat){
+  const catId=cat.replace(/[^a-zA-Z0-9]/g,'_');
+  const nameEl=document.getElementById(`add-name-${catId}`);const qtyEl=document.getElementById(`add-qty-${catId}`);
+  const name=nameEl?.value.trim();if(!name)return;
+  const qty=parseInt(qtyEl?.value)||0;
+  const newItem={name,qty,id:Math.random().toString(36).slice(2)};
+  state[cat].push(newItem);nameEl.value='';if(qtyEl)qtyEl.value='';
+  const body=document.getElementById(`body-${catId}`);
+  if(body){const div=document.createElement('div');div.className=`item-row${qty===0?' zero':qty<=LOW_STOCK?' low':''}`;div.id=`item-${newItem.id}`;div.innerHTML=itemHTML(cat,newItem);body.appendChild(div);}
+  renderLowStock();saveAll();
 };
-
-window.updateName = function(cat, id, val) {
-  const item = state[cat]?.find(i => i.id === id);
-  if (item) { item.name = val; saveAll(); }
-};
-
-window.deleteItem = function(cat, id) {
-  state[cat] = state[cat].filter(i => i.id !== id);
-  document.getElementById(`item-${id}`)?.remove();
-  renderLowStock(); saveAll();
-};
-
-window.addItem = function(cat) {
-  const catId = cat.replace(/[^a-zA-Z0-9]/g,'_');
-  const nameEl = document.getElementById(`add-name-${catId}`);
-  const qtyEl = document.getElementById(`add-qty-${catId}`);
-  const name = nameEl?.value.trim();
-  if (!name) return;
-  const qty = parseInt(qtyEl?.value)||0;
-  const newItem = {name,qty,id:Math.random().toString(36).slice(2)};
-  state[cat].push(newItem);
-  nameEl.value=''; if(qtyEl)qtyEl.value='';
-  const body = document.getElementById(`body-${catId}`);
-  if (body) { const div=document.createElement('div'); div.className=`item-row${qty===0?' zero':qty<=LOW_STOCK?' low':''}`; div.id=`item-${newItem.id}`; div.innerHTML=itemHTML(cat,newItem); body.appendChild(div); }
-  renderLowStock(); saveAll();
-};
-
-window.updateCompra = function(id,val) { const item=compras.find(i=>i.id===id); if(item){item.name=val;saveAll();} };
-window.deleteCompra = function(id) { compras=compras.filter(i=>i.id!==id); document.getElementById(`compra-${id}`)?.remove(); saveAll(); };
-window.addCompra = function() {
-  const el=document.getElementById('add-compra-name'); const name=el?.value.trim(); if(!name)return;
-  const newItem={name,id:Math.random().toString(36).slice(2)}; compras.push(newItem); el.value='';
+window.updateCompra=function(id,val){const item=compras.find(i=>i.id===id);if(item){item.name=val;saveAll();}};
+window.deleteCompra=function(id){compras=compras.filter(i=>i.id!==id);document.getElementById(`compra-${id}`)?.remove();saveAll();};
+window.addCompra=function(){
+  const el=document.getElementById('add-compra-name');const name=el?.value.trim();if(!name)return;
+  const ni={name,id:Math.random().toString(36).slice(2)};compras.push(ni);el.value='';
   const body=document.getElementById('compras-body');
-  if(body){const div=document.createElement('div');div.className='compra-item';div.id=`compra-${newItem.id}`;div.innerHTML=`<input class="compra-name" value="${name}" onchange="updateCompra('${newItem.id}',this.value)"/><span class="note-tag">pendiente</span><button class="del-btn" style="opacity:1" onclick="deleteCompra('${newItem.id}')">✕</button>`;body.appendChild(div);}
+  if(body){const div=document.createElement('div');div.className='compra-item';div.id=`compra-${ni.id}`;div.innerHTML=`<input class="compra-name" value="${name}" onchange="updateCompra('${ni.id}',this.value)"/><span class="note-tag">${t('pendingTag')}</span><button class="del-btn" style="opacity:1" onclick="deleteCompra('${ni.id}')">✕</button>`;body.appendChild(div);}
   saveAll();
 };
+window.toggleSection=function(h){h.closest('section,.compras-section').classList.toggle('collapsed');};
+window.toggleAll=function(open){document.querySelectorAll('section,.compras-section').forEach(s=>open?s.classList.remove('collapsed'):s.classList.add('collapsed'));};
 
-window.toggleSection = function(h) { h.closest('section,.compras-section').classList.toggle('collapsed'); };
-window.toggleAll = function(open) { document.querySelectorAll('section,.compras-section').forEach(s=>open?s.classList.remove('collapsed'):s.classList.add('collapsed')); };
-
-window.openCopy = function() {
-  const today = new Date().toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric'});
+window.openCopy=function(){
+  const today=new Date().toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric'});
   let lines=[`🍾 *GARRAFEIRA — STOCK ${today}*`,``];
   const low=getLowStock();
-  if(low.length>0){lines.push('⚠️ *POCO STOCK*');low.forEach(i=>lines.push(`  • ${i.name} — ${i.qty} uds`));lines.push('');}
-  if(compras.length>0){lines.push('🛒 *COMPRAS PENDIENTES*');compras.forEach(c=>lines.push(`  • ${c.name}`));lines.push('');}
+  if(low.length>0){lines.push('⚠️ *'+t('stock')+'*');low.forEach(i=>lines.push(`  • ${i.name} — ${i.qty} uds`));lines.push('');}
+  if(compras.length>0){lines.push('🛒 *'+t('purchases').replace('🛒 ','')+'*');compras.forEach(c=>lines.push(`  • ${c.name}`));lines.push('');}
   Object.keys(state).forEach(cat=>{if(!state[cat].length)return;lines.push(`*${cat}*`);state[cat].forEach(item=>lines.push(`  ${item.name} — ${item.qty===0?'❌ 0':item.qty}`));lines.push('');});
   document.getElementById('copy-text').value=lines.join('\n').trim();
   document.getElementById('modal').classList.add('open');
 };
 window.closeModal=function(){document.getElementById('modal').classList.remove('open');};
-window.copyText=function(){const ta=document.getElementById('copy-text');ta.select();navigator.clipboard.writeText(ta.value).then(()=>{const btn=document.querySelector('.modal .btn.primary');btn.textContent='✓ Copiado!';setTimeout(()=>btn.textContent='Copiar todo',2000);});};
+window.copyText=function(){
+  const ta=document.getElementById('copy-text');ta.select();
+  navigator.clipboard.writeText(ta.value).then(()=>{
+    const btn=document.getElementById('lbl-copy');btn.textContent=t('copied');
+    setTimeout(()=>btn.textContent=t('copyAll'),2000);
+  });
+};
 document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
 
 function itemHTML(cat,item){
@@ -609,20 +615,20 @@ function itemHTML(cat,item){
     <button class="del-btn" onclick="deleteItem('${cat}','${item.id}')">✕</button>`;
 }
 
-function render() {
-  const appDiv=document.getElementById('app'); appDiv.innerHTML='';
-  const cs=document.createElement('div'); cs.className='compras-section';
-  cs.innerHTML=`<div class="section-header" onclick="toggleSection(this)"><h2>🛒 COMPRAS PENDIENTES</h2><div class="sec-meta"><span class="sec-count">${compras.length}</span><span class="chevron">▼</span></div></div>
-    <div class="section-body" id="compras-body">${compras.map(item=>`<div class="compra-item" id="compra-${item.id}"><input class="compra-name" value="${item.name}" onchange="updateCompra('${item.id}',this.value)"/><span class="note-tag">pendiente</span><button class="del-btn" style="opacity:1" onclick="deleteCompra('${item.id}')">✕</button></div>`).join('')}</div>
-    <div class="add-row"><input class="add-name" id="add-compra-name" placeholder="+ Añadir a la lista..."/><button class="add-confirm" onclick="addCompra()">+ Add</button></div>`;
+function render(){
+  const appDiv=document.getElementById('app');appDiv.innerHTML='';
+  const cs=document.createElement('div');cs.className='compras-section';
+  cs.innerHTML=`<div class="section-header" onclick="toggleSection(this)"><h2>${t('purchases')}</h2><div class="sec-meta"><span class="sec-count">${compras.length}</span><span class="chevron">▼</span></div></div>
+    <div class="section-body" id="compras-body">${compras.map(item=>`<div class="compra-item" id="compra-${item.id}"><input class="compra-name" value="${item.name}" onchange="updateCompra('${item.id}',this.value)"/><span class="note-tag">${t('pendingTag')}</span><button class="del-btn" style="opacity:1" onclick="deleteCompra('${item.id}')">✕</button></div>`).join('')}</div>
+    <div class="add-row"><input class="add-name" data-type="list" id="add-compra-name" placeholder="${t('addList')}"/><button class="add-confirm" onclick="addCompra()">${t('add')}</button></div>`;
   appDiv.appendChild(cs);
 
   Object.keys(state).forEach(cat=>{
     const catId=cat.replace(/[^a-zA-Z0-9]/g,'_');
-    const sec=document.createElement('section'); sec.id=`sec-${catId}`;
-    sec.innerHTML=`<div class="section-header" onclick="toggleSection(this)"><h2>${cat}</h2><div class="sec-meta"><span class="sec-count">${state[cat].length} prod.</span><span class="chevron">▼</span></div></div>
+    const sec=document.createElement('section');sec.id=`sec-${catId}`;
+    sec.innerHTML=`<div class="section-header" onclick="toggleSection(this)"><h2>${cat}</h2><div class="sec-meta"><span class="sec-count">${state[cat].length} ${t('prod')}</span><span class="chevron">▼</span></div></div>
       <div class="section-body" id="body-${catId}">${state[cat].map(item=>`<div class="item-row${item.qty===0?' zero':item.qty<=LOW_STOCK?' low':''}" id="item-${item.id}">${itemHTML(cat,item)}</div>`).join('')}</div>
-      <div class="add-row"><input class="add-name" id="add-name-${catId}" placeholder="+ Añadir producto..."/><input class="add-qty" id="add-qty-${catId}" type="number" min="0" placeholder="0"/><button class="add-confirm" onclick="addItem('${cat}')">+ Add</button></div>`;
+      <div class="add-row"><input class="add-name" data-type="product" id="add-name-${catId}" placeholder="${t('addProduct')}"/><input class="add-qty" id="add-qty-${catId}" type="number" min="0" placeholder="0"/><button class="add-confirm" onclick="addItem('${cat}')">${t('add')}</button></div>`;
     appDiv.appendChild(sec);
   });
 }
